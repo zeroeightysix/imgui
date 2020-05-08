@@ -256,7 +256,7 @@ object ExampleApp {
         ShowDemoWindowWidgets()
         ShowDemoWindowLayout()
         ShowDemoWindowPopups()
-        ShowDemoWindowColumns()
+        ShowDemoWindowTables()
         ShowDemoWindowMisc()
 
         // End of ShowDemoWindow()

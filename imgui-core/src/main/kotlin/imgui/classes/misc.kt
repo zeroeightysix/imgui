@@ -120,10 +120,42 @@ class SizeCallbackData(
 
 
 // struct Storage [JVM] substituted by HashMap
+//Style;                  // Runtime data for styling/colors
+
+/** Sorting specifications for a table (often handling sort specs for a single column, occasionally more)
+ *
+ *  Sorting specifications for a table (often handling sort specs for a single column, occasionally more)
+ *  Obtained by calling TableGetSortSpecs() */
+class TableSortSpecs {
+
+    /**  Pointer to sort spec array. */
+    var specs: Array<TableSortSpecsColumn>? = null
+    /** Sort spec count. Most often 1 unless e.g. ImGuiTableFlags_MultiSortable is enabled. */
+//    var specsCount = 0 // [JVM] useless
+    /** Set to true by TableGetSortSpecs() call if the specs have changed since the previous call. Use this to sort again! */
+    var specsChanged = false
+    /** Set to the mask of column indexes included in the Specs array. e.g. (1 << N) when column N is sorted. */
+    var columnsMask = 0L
+}
+
+/** Sorting specification for one column of a table
+ *
+ *  Sorting specification for one column of a table (sizeof == 8 bytes) */
+class TableSortSpecsColumn {
+
+    /** User id of the column (if specified by a TableSetupColumn() call) */
+    var columnUserID: ID = 0
+    /**  Index of the column */
+    var columnIndex = 0
+    /** Index within parent ImGuiTableSortSpecs (always stored in order starting from 0, tables sorted on a single criteria will always have a 0 here) */
+    var sortOrder = 0
+    /** ImGuiSortDirection_Ascending or ImGuiSortDirection_Descending (you can use this or SortSign, whichever is more convenient for your sort function) */
+    var sortDirection = SortDirection.Ascending
+}
 
 /** Helper: Growable text buffer for logging/accumulating text
  *  (this could be called 'ImGuiTextBuilder' / 'ImGuiStringBuilder') */
-//class TextBuffer [JVM] StringBuilder
+//class TextBuffer -> [JVM] StringBuilder
 
 class TextFilter(defaultFilter: String = "") {
 

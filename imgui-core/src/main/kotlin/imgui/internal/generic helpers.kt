@@ -163,6 +163,8 @@ fun alphaBlendColors(colA: Int, colB: Int): Int {
 // -----------------------------------------------------------------------------------------------------------------
 val Int.isPowerOfTwo: Boolean
     get() = this != 0 && (this and (this - 1)) == 0
+val Long.isPowerOfTwo: Boolean
+    get() = this != 0L && (this and (this - 1)) == 0L
 val Int.upperPowerOfTwo: Int
     get() {
         var v = this - 1
@@ -663,5 +665,26 @@ fun getDirQuadrantFromDelta(dx: Float, dy: Float) = when {
     else -> when {
         dy > 0f -> Dir.Down
         else -> Dir.Up
+    }
+}
+
+// Helpers: Bit arrays
+infix fun IntArray.testBit(n: Int): Boolean {
+    val mask = 1 shl (n and 31); return (this[n ushr 5] and mask).bool; }
+
+infix fun IntArray.clearBit(n: Int) {
+    val mask = 1 shl (n and 31); this[n ushr 5] = this[n ushr 5] wo mask; }
+
+infix fun IntArray.setBit(n: Int) {
+    val mask = 1 shl (n and 31); this[n ushr 5] = this[n ushr 5] or mask; }
+
+fun IntArray.setBitRange(n_: Int, n2: Int) {
+    var n = n_
+    while (n <= n2) {
+        val aMod = n and 31
+        val bMod = (if (n2 >= n + 31) 31 else n2 and 31) + 1
+        val mask = ((1L shl bMod) - 1).toUInt() wo ((1L shl aMod) - 1).toUInt()
+        this[n ushr 5] = this[n ushr 5] or mask
+        n = (n + 32) wo 31
     }
 }

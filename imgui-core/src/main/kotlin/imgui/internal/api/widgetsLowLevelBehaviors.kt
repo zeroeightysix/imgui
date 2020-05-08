@@ -53,7 +53,7 @@ const val DRAG_DROP_HOLD_TIMER = 0.7f
 /** Widgets low-level behaviors */
 internal interface widgetsLowLevelBehaviors {
 
-    /** @return []pressed, hovered, held] */
+    /** @return [pressed, hovered, held] */
     fun buttonBehavior(bb: Rect, id: ID, flag: Bf) = buttonBehavior(bb, id, flag.i)
 
     /** @return []pressed, hovered, held]

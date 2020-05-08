@@ -506,6 +506,244 @@ infix fun TabItemFlags.hasnt(b: TabItemFlag): Boolean = and(b.i) == 0
 infix fun TabItemFlags.wo(b: TabItemFlag): TabItemFlags = and(b.i.inv())
 
 
+typealias TableFlags = Int
+
+/** Flags for ImGui::BeginTable()
+ *  - Columns can either varying resizing policy: "Fixed", "Stretch" or "AlwaysAutoResize". Toggling ScrollX needs to alter default sizing policy.
+ *  - Sizing policy have many subtle side effects which may be hard to fully comprehend at first.. They'll eventually make sense.
+ *  - with SizingPolicyFixedX (default is ScrollX is on):     Columns can be enlarged as needed. Enable scrollbar if ScrollX is enabled, otherwise extend parent window's contents rect. Only Fixed columns allowed. Weighted columns will calculate their width assuming no scrolling.
+ *  - with SizingPolicyStretchX (default is ScrollX is off):  Fit all columns within available table width (so it doesn't make sense to use ScrollX with Stretch columns!). Fixed and Weighted columns allowed. */
+enum class TableFlag(val i: TableFlags) {
+
+    // ------------------------------ Features ------------------------------
+
+    None(0),
+
+    /** Allow resizing columns. */
+    Resizable(1 shl 0),
+
+    /** Allow reordering columns (need calling TableSetupColumn() + TableAutoHeaders() or TableHeaders() to display headers) */
+    Reorderable(1 shl 1),
+
+    /** Allow hiding columns (with right-click on header) (FIXME-TABLE: allow without headers). */
+    Hideable(1 shl 2),
+
+    /** Allow sorting on one column (sort_specs_count will always be == 1). Call TableGetSortSpecs() to obtain sort specs. */
+    Sortable(1 shl 3),
+
+    /** Allow sorting on multiple columns by holding Shift (sort_specs_count may be > 1). Call TableGetSortSpecs() to obtain sort specs. */
+    MultiSortable(1 shl 4),
+
+    /** Disable persisting columns order, width and sort settings in the .ini file. */
+    NoSavedSettings(1 shl 5),
+
+    // ------------------------------ Decoration ------------------------------
+
+    /** Use ImGuiCol_TableRowBg and ImGuiCol_TableRowBgAlt colors behind each rows. */
+    RowBg(1 shl 6),
+
+    /** Draw horizontal borders between rows. */
+    BordersHInner(1 shl 7),
+
+    /** Draw horizontal borders at the top and bottom. */
+    BordersHOuter(1 shl 8),
+
+    /** Draw vertical borders between columns. */
+    BordersVInner(1 shl 9),
+
+    /** Draw vertical borders on the left and right sides. */
+    BordersVOuter(1 shl 10),
+
+    /** Draw horizontal borders. */
+    BordersH(BordersHInner or BordersHOuter),
+
+    /** Draw vertical borders. */
+    BordersV(BordersVInner or BordersVOuter),
+
+    /** Draw inner borders. */
+    BordersInner(BordersVInner or BordersHInner),
+
+    /** Draw outer borders. */
+    BordersOuter(BordersVOuter or BordersHOuter),
+
+    /** Draw all borders. */
+    Borders(BordersInner or BordersOuter),
+
+    /** Borders covers all rows even when Headers are being used. Allow resizing from any rows. */
+    BordersVFullHeight(1 shl 11),
+
+    // ------------------------------ Padding, Sizing ------------------------------
+
+    /** Disable pushing clipping rectangle for every individual columns (reduce draw command count, items will be able to overflow) */
+    NoClipX(1 shl 12),
+
+    /** Default if ScrollX is on. Columns will default to use WidthFixed or WidthAlwaysAutoResize policy. Read description above for more details. */
+    SizingPolicyFixedX(1 shl 13),
+
+    /** Default if ScrollX is off. Columns will default to use WidthStretch policy. Read description above for more details. */
+    SizingPolicyStretchX(1 shl 14),
+
+    /** Disable header width contribution to automatic width calculation. */
+    NoHeadersWidth(1 shl 15),
+
+    /** (FIXME-TABLE: Reword as SizingPolicy?) Disable extending past the limit set by outer_size.y, only meaningful when neither of ScrollX|ScrollY are set (data below the limit will be clipped and not visible) */
+    NoHostExtendY(1 shl 16),
+
+    /** (FIXME-TABLE) Disable code that keeps column always minimally visible when table width gets too small. */
+    NoKeepColumnsVisible(1 shl 17),
+
+    // ------------------------------ Scrolling ------------------------------
+
+    /** Enable horizontal scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size. Because this create a child window, ScrollY is currently generally recommended when using ScrollX. */
+    ScrollX(1 shl 18),
+
+    /** Enable vertical scrolling. Require 'outer_size' parameter of BeginTable() to specify the container size. */
+    ScrollY(1 shl 19),
+    Scroll(ScrollX or ScrollY),
+
+    /** We can lock 1 to 3 rows (starting from the top). Use with ScrollY enabled. */
+    ScrollFreezeTopRow(1 shl 20),
+    ScrollFreeze2Rows(2 shl 20),
+    ScrollFreeze3Rows(3 shl 20),
+
+    /** We can lock 1 to 3 columns (starting from the left). Use with ScrollX enabled. */
+    ScrollFreezeLeftColumn(1 shl 22),
+    ScrollFreeze2Columns(2 shl 22),
+    ScrollFreeze3Columns(3 shl 22),
+
+    // ------------------------------ [Internal] Combinations and masks ------------------------------
+
+    SizingPolicyMaskX_(SizingPolicyStretchX or SizingPolicyFixedX),
+    ScrollFreezeRowsShift_(20),
+    ScrollFreezeColumnsShift_(22),
+    ScrollFreezeRowsMask_(0x03 shl ScrollFreezeRowsShift_.i),
+    ScrollFreezeColumnsMask_(0x03 shl ScrollFreezeColumnsShift_.i);
+
+    infix fun and(b: TableFlag): TableFlags = i and b.i
+    infix fun and(b: TableFlags): TableFlags = i and b
+    infix fun or(b: TableFlag): TableFlags = i or b.i
+    infix fun or(b: TableFlags): TableFlags = i or b
+    infix fun xor(b: TableFlag): TableFlags = i xor b.i
+    infix fun xor(b: TableFlags): TableFlags = i xor b
+    infix fun wo(b: TableFlags): TableFlags = and(b.inv())
+}
+
+infix fun TableFlags.and(b: TableFlag): TableFlags = and(b.i)
+infix fun TableFlags.or(b: TableFlag): TableFlags = or(b.i)
+infix fun TableFlags.xor(b: TableFlag): TableFlags = xor(b.i)
+infix fun TableFlags.has(b: TableFlag): Boolean = and(b.i) != 0
+infix fun TableFlags.hasnt(b: TableFlag): Boolean = and(b.i) == 0
+infix fun TableFlags.wo(b: TableFlag): TableFlags = and(b.i.inv())
+
+typealias TableColumnFlags = Int
+
+// Flags for ImGui::TableSetupColumn()
+// FIXME-TABLE: Rename to ImGuiColumns_*, stick old columns api flags in there under an obsolete api block
+enum class TableColumnFlag(val i: TableColumnFlags) {
+
+    None(0),
+
+    /** Default as a hidden column. */
+    DefaultHide(1 shl 0),
+
+    /** Default as a sorting column. */
+    DefaultSort(1 shl 1),
+
+    /** Column will keep a fixed size, preferable with horizontal scrolling enabled (default if table sizing policy is SizingPolicyFixedX and table is resizable). */
+    WidthFixed(1 shl 2),
+
+    /** Column will stretch, preferable with horizontal scrolling disabled (default if table sizing policy is SizingPolicyStretchX). */
+    WidthStretch(1 shl 3),
+
+    /** Column will keep resizing based on submitted contents (with a one frame delay) == Fixed with auto resize (default if table sizing policy is SizingPolicyFixedX and table is not resizable). */
+    WidthAlwaysAutoResize(1 shl 4),
+
+    /** Disable manual resizing. */
+    NoResize(1 shl 5),
+
+    /** Disable clipping for this column (all NoClipX columns will render in a same draw command). */
+    NoClipX(1 shl 6),
+
+    /** Disable ability to sort on this field (even if ImGuiTableColumnFlag_Sortable is set on the table). */
+    NoSort(1 shl 7),
+
+    /** Disable ability to sort in the ascending direction. */
+    NoSortAscending(1 shl 8),
+
+    /** Disable ability to sort in the descending direction. */
+    NoSortDescending(1 shl 9),
+
+    /** Disable hiding this column. */
+    NoHide(1 shl 10),
+
+    /** Header width don't contribute to automatic column width. */
+    NoHeaderWidth(1 shl 11),
+
+    /** Make the initial sort direction Ascending when first sorting on this column (default). */
+    PreferSortAscending(1 shl 12),
+
+    /** Make the initial sort direction Descending when first sorting on this column. */
+    PreferSortDescending(1 shl 13),
+
+    /** Use current Indent value when entering cell (default for 1st column). */
+    IndentEnable(1 shl 14),
+
+    /** Ignore current Indent value when entering cell (default for columns after the 1st one). Indentation changes _within_ the cell will still be honored. */
+    IndentDisable(1 shl 15),
+
+    /** Disable reordering this column, this will also prevent other columns from crossing over this column. */
+    NoReorder(1 shl 16),
+
+    // ------------------------------ [Internal] Combinations and masks ------------------------------
+    WidthMask_(WidthFixed or WidthStretch or WidthAlwaysAutoResize),
+    IndentMask_(IndentEnable or IndentDisable),
+
+    /** [Internal] Disable user resizing this column directly (it may however we resized indirectly from its left edge) */
+    NoDirectResize_(1 shl 20);
+
+    infix fun and(b: TableColumnFlag): TableColumnFlags = i and b.i
+    infix fun and(b: TableColumnFlags): TableColumnFlags = i and b
+    infix fun or(b: TableColumnFlag): TableColumnFlags = i or b.i
+    infix fun or(b: TableColumnFlags): TableColumnFlags = i or b
+    infix fun xor(b: TableColumnFlag): TableColumnFlags = i xor b.i
+    infix fun xor(b: TableColumnFlags): TableColumnFlags = i xor b
+    infix fun wo(b: TableColumnFlags): TableColumnFlags = and(b.inv())
+}
+
+infix fun TableColumnFlags.and(b: TableColumnFlag): TableColumnFlags = and(b.i)
+infix fun TableColumnFlags.or(b: TableColumnFlag): TableColumnFlags = or(b.i)
+infix fun TableColumnFlags.xor(b: TableColumnFlag): TableColumnFlags = xor(b.i)
+infix fun TableColumnFlags.has(b: TableColumnFlag): Boolean = and(b.i) != 0
+infix fun TableColumnFlags.hasnt(b: TableColumnFlag): Boolean = and(b.i) == 0
+infix fun TableColumnFlags.wo(b: TableColumnFlag): TableColumnFlags = and(b.i.inv())
+
+
+typealias TableRowFlags = Int
+
+/** Flags for ImGui::TableNextRow() */
+enum class TableRowFlag(val i: TableRowFlags) {
+    None(0),
+
+    /**  Identify header row (set default background color + width of its contents accounted different for auto column width) */
+    Headers(1 shl 0);
+
+    infix fun and(b: TableRowFlag): TableRowFlags = i and b.i
+    infix fun and(b: TableRowFlags): TableRowFlags = i and b
+    infix fun or(b: TableRowFlag): TableRowFlags = i or b.i
+    infix fun or(b: TableRowFlags): TableRowFlags = i or b
+    infix fun xor(b: TableRowFlag): TableRowFlags = i xor b.i
+    infix fun xor(b: TableRowFlags): TableRowFlags = i xor b
+    infix fun wo(b: TableRowFlags): TableRowFlags = and(b.inv())
+}
+
+infix fun TableRowFlags.and(b: TableRowFlag): TableRowFlags = and(b.i)
+infix fun TableRowFlags.or(b: TableRowFlag): TableRowFlags = or(b.i)
+infix fun TableRowFlags.xor(b: TableRowFlag): TableRowFlags = xor(b.i)
+infix fun TableRowFlags.has(b: TableRowFlag): Boolean = and(b.i) != 0
+infix fun TableRowFlags.hasnt(b: TableRowFlag): Boolean = and(b.i) == 0
+infix fun TableRowFlags.wo(b: TableRowFlag): TableRowFlags = and(b.i.inv())
+
+
 typealias FocusedFlags = Int
 
 /** Flags for ImGui::IsWindowFocused() */
@@ -683,6 +921,17 @@ enum class Dir {
 }
 
 infix fun Int.shl(b: Dir) = shl(b.i)
+
+/** A sorting direction */
+enum class SortDirection {
+    None,
+
+    /** Ascending = 0->9, A->Z etc. */
+    Ascending,
+
+    /** Descending = 9->0, Z->A etc. */
+    Descending
+}
 
 /** User fill ImGuiio.KeyMap[] array with indices into the ImGuiio.KeysDown[512] array
  *
@@ -1020,6 +1269,21 @@ enum class Col {
     PlotLinesHovered,
     PlotHistogram,
     PlotHistogramHovered,
+
+    /** Table header background */
+    TableHeaderBg,
+
+    /** Table outer and header borders (prefer using Alpha=1.0 here) */
+    TableBorderStrong,
+
+    /** Table inner borders (prefer using Alpha=1.0 here) */
+    TableBorderLight,
+
+    /** Table row background (even rows) */
+    TableRowBg,
+
+    /** Table row background (odd rows) */
+    TableRowBgAlt,
     TextSelectedBg,
     DragDropTarget,
 
@@ -1108,6 +1372,9 @@ enum class StyleVar {
 
     /** float   */
     IndentSpacing,
+
+    /** Vec2 */
+    CellPadding,
 
     /** Float   */
     ScrollbarSize,
@@ -1316,7 +1583,7 @@ enum class Cond(@JvmField val i: CondFlags) {
     /** Set the variable    */
     Always(1 shl 0),
 
-    /** Set the variable once per runtime session (only the first call with succeed)    */
+    /** Set the variable once per runtime session (only the first call will succeed)    */
     Once(1 shl 1),
 
     /** Set the variable if the object/window has no persistently saved data (no entry in .ini file)    */

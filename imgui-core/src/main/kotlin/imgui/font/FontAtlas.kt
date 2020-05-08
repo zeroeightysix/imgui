@@ -9,19 +9,14 @@ import glm_.vec2.operators.times
 import imgui.ImGui.style
 import imgui.MouseCursor
 import imgui.TextureID
-import imgui.internal.fileLoadToMemory
-import imgui.internal.round
-import imgui.internal.upperPowerOfTwo
+import imgui.internal.*
 import imgui.stb.*
-import imgui.wo
 import kool.*
 import kool.lib.isNotEmpty
 import org.lwjgl.stb.*
 import uno.convert.decode85
 import uno.kotlin.plusAssign
 import uno.stb.stb
-import unsigned.toUInt
-import unsigned.toULong
 import java.nio.ByteBuffer
 import kotlin.math.floor
 import kotlin.math.sqrt
@@ -93,8 +88,10 @@ class FontAtlas {
                 .apply { displayOffset.y = 1f }
     }
 
-    fun addFontFromFileTTF(filename: String, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
-                           glyphRanges: Array<IntRange> = arrayOf()): Font? {
+    fun addFontFromFileTTF(
+            filename: String, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
+            glyphRanges: Array<IntRange> = arrayOf()
+    ): Font? {
 
         assert(!locked) { "Cannot modify a locked FontAtlas between NewFrame() and EndFrame/Render()!" }
         val chars = fileLoadToMemory(filename) ?: run {
@@ -109,8 +106,10 @@ class FontAtlas {
 
     /** Note: Transfer ownership of 'ttfData' to FontAtlas! Will be deleted after destruction of the atlas.
      *  Set font_cfg->FontDataOwnedByAtlas=false to keep ownership of your data and it won't be freed. */
-    fun addFontFromMemoryTTF(fontData: CharArray, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
-                             glyphRanges: Array<IntRange> = arrayOf()): Font {
+    fun addFontFromMemoryTTF(
+            fontData: CharArray, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
+            glyphRanges: Array<IntRange> = arrayOf()
+    ): Font {
 
         assert(!locked) { "Cannot modify a locked FontAtlas between NewFrame() and EndFrame/Render()!" }
         assert(fontCfg.fontData.isEmpty())
@@ -123,8 +122,10 @@ class FontAtlas {
     }
 
     /** @param compressedFontData still owned by caller. Compress with binary_to_compressed_c.cpp.   */
-    fun addFontFromMemoryCompressedTTF(compressedFontData: CharArray, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
-                                       glyphRanges: Array<IntRange> = arrayOf()): Font {
+    fun addFontFromMemoryCompressedTTF(
+            compressedFontData: CharArray, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
+            glyphRanges: Array<IntRange> = arrayOf()
+    ): Font {
 
         val bufDecompressedData = stb.decompress(compressedFontData)
 
@@ -135,8 +136,10 @@ class FontAtlas {
 
     /** @param compressedFontDataBase85 still owned by caller. Compress with binary_to_compressed_c.cpp with -base85
      *  paramaeter  */
-    fun addFontFromMemoryCompressedBase85TTF(compressedFontDataBase85: String, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
-                                             glyphRanges: Array<IntRange> = arrayOf()): Font {
+    fun addFontFromMemoryCompressedBase85TTF(
+            compressedFontDataBase85: String, sizePixels: Float, fontCfg: FontConfig = FontConfig(),
+            glyphRanges: Array<IntRange> = arrayOf()
+    ): Font {
 
         val compressedTtf = decode85(compressedFontDataBase85)
         return addFontFromMemoryCompressedTTF(compressedTtf, sizePixels, fontCfg, glyphRanges)
@@ -290,9 +293,6 @@ class FontAtlas {
      *  Read docs/FONTS.txt for more details about using colorful icons.    */
     class CustomRect {
 
-        /** Input, User ID. Use < 0x110000 to map into a font glyph, >= 0x110000 for other/internal/custom texture data.   */
-        var id = 0xFFFFFFFF.i
-
         /** Input, Desired rectangle width */
         var width = 0
 
@@ -305,38 +305,49 @@ class FontAtlas {
         /** Output, Packed height position in Atlas  */
         var y = 0xFFFF
 
-        /** Input, For custom font glyphs only (ID < 0x110000): glyph xadvance */
+        /** Input, User ID. Use < 0x110000 to map into a font glyph, >= 0x110000 for other/internal/custom texture data.   */
+        var glyphID = 0xFFFFFFFF.i
+
+        /** Input    // For custom font glyphs only: glyph xadvance */
         var glyphAdvanceX = 0f
 
-        /** Input, For custom font glyphs only (ID < 0x110000): glyph display offset   */
+        /** Input    // For custom font glyphs only: glyph display offset   */
         var glyphOffset = Vec2()
 
-        /** Input, For custom font glyphs only (ID < 0x110000): target font    */
+        /** Input    // For custom font glyphs only: target font    */
         var font: Font? = null
 
         val isPacked: Boolean
             get() = x != 0xFFFF
     }
 
-    /** Id needs to be >= 0x110000. Id >= 0x80000000 are reserved for ImGui and DrawList   */
-    fun addCustomRectRegular(id: Int, width: Int, height: Int): Int {
-        // Breaking change on 2019/11/21 (1.74): ImFontAtlas::AddCustomRectRegular() now requires an ID >= 0x110000 (instead of >= 0x10000)
-        assert(id.toULong() >= 0x110000 && width in 0..0xFFFF && height in 0..0xFFFF)
+    //-------------------------------------------
+    // [BETA] Custom Rectangles/Glyphs API
+    //-------------------------------------------
+    // You can request arbitrary rectangles to be packed into the atlas, for your own purposes.
+    // After calling Build(), you can query the rectangle position and render your pixels.
+    // You can also request your rectangles to be mapped as font glyph (given a font + Unicode point),
+    // so you can render e.g. custom colorful icons and use them as regular glyphs.
+    // Read docs/FONTS.txt for more details about using colorful icons.
+    // Note: this API may be redesigned later in order to support multi-monitor varying DPI settings.
+
+    fun addCustomRectRegular(width: Int, height: Int): Int {
         val r = CustomRect()
-        r.id = id
         r.width = width
         r.height = height
         customRects.add(r)
         return customRects.lastIndex
     }
 
-    /** Id needs to be < 0x110000 to register a rectangle to map into a specific font.   */
     fun addCustomRectFontGlyph(font: Font, id: Int, width: Int, height: Int, advanceX: Float, offset: Vec2 = Vec2()): Int {
+//        #ifdef IMGUI_USE_WCHAR32
+//                IM_ASSERT(id <= IM_UNICODE_CODEPOINT_MAX);
+//        #endif
         assert(width in 1..0xFFFF && height in 1..0xFFFF)
         val r = CustomRect()
-        r.id = id
         r.width = width
         r.height = height
+        r.glyphID = id
         r.glyphAdvanceX = advanceX
         r.glyphOffset = offset
         r.font = font
@@ -363,7 +374,6 @@ class FontAtlas {
 
         assert(customRectIds[0] != -1)
         val r = customRects[customRectIds[0]]
-        assert(r.id == DefaultTexData.id)
         val pos = DefaultTexData.cursorDatas[cursor.i][0] + Vec2(r.x, r.y)
         val size = DefaultTexData.cursorDatas[cursor.i][1]
         outSize put size
@@ -452,31 +462,32 @@ class FontAtlas {
     }
 
 
+    /** Helper: ImBitArray (wrapper over ImBitArray functions)
+     *  Store 1-bit per value. NOT CLEARED by constructor. */
+    class BitArray(val bitCount: Int) {
+        val storage = IntArray((bitCount + 31) shr 5)
+        fun clearBits() = storage.fill(0)
+        infix fun testBit(n: Int): Boolean {
+            assert(n < bitCount)
+            return storage testBit n
+        }
+
+        infix fun setBit(n: Int) {
+            assert(n < bitCount)
+            storage setBit n
+        }
+
+        infix fun clearBit(n: Int) {
+            assert(n < bitCount)
+            storage clearBit n
+        }
+        fun setBitRange(n1: Int, n2: Int) = storage.setBitRange(n1, n2)
+    }
+
     /** Helper: ImBoolVector. Store 1-bit per value.
      *  Note that Resize() currently clears the whole vector. */
     class BitVector(sz: Int) { // ~create
         var storage = IntArray((sz + 31) ushr 5)
-
-        // Helpers: Bit arrays
-        infix fun IntArray.testBit(n: Int): Boolean {
-            val mask = 1 shl (n and 31); return (this[n ushr 5] and mask).bool; }
-
-        infix fun IntArray.clearBit(n: Int) {
-            val mask = 1 shl (n and 31); this[n ushr 5] = this[n ushr 5] wo mask; }
-
-        infix fun IntArray.setBit(n: Int) {
-            val mask = 1 shl (n and 31); this[n ushr 5] = this[n ushr 5] or mask; }
-
-        fun IntArray.setBitRange(n_: Int, n2: Int) {
-            var n = n_
-            while (n <= n2) {
-                val aMod = n and 31
-                val bMod = (if (n2 >= n + 31) 31 else n2 and 31) + 1
-                val mask = ((1L shl bMod) - 1).toUInt() wo ((1L shl aMod) - 1).toUInt()
-                this[n ushr 5] = this[n ushr 5] or mask
-                n = (n + 32) wo 31
-            }
-        }
 
         fun clear() {
             storage = IntArray(0)
@@ -819,8 +830,8 @@ class FontAtlas {
     fun buildInit() {
         if (customRectIds[0] >= 0) return
         customRectIds[0] = when {
-            flags hasnt FontAtlasFlag.NoMouseCursors -> addCustomRectRegular(DefaultTexData.id, DefaultTexData.wHalf * 2 + 1, DefaultTexData.h)
-            else -> addCustomRectRegular(DefaultTexData.id, 2, 2)
+            flags hasnt FontAtlasFlag.NoMouseCursors -> addCustomRectRegular(DefaultTexData.wHalf * 2 + 1, DefaultTexData.h)
+            else -> addCustomRectRegular(2, 2)
         }
     }
 
@@ -868,13 +879,13 @@ class FontAtlas {
         // Register custom rectangle glyphs
         for (r in customRects) {
             val font = r.font
-            if (font == null || r.id >= 0x110000) continue
+            if (font == null || r.glyphID == 0) continue
 
             assert(font.containerAtlas === this)
             val uv0 = Vec2()
             val uv1 = Vec2()
             calcCustomRectUV(r, uv0, uv1)
-            font.addGlyph(r.id, r.glyphOffset.x, r.glyphOffset.y, r.glyphOffset.x + r.width, r.glyphOffset.y + r.height,
+            font.addGlyph(r.glyphID, r.glyphOffset.x, r.glyphOffset.y, r.glyphOffset.x + r.width, r.glyphOffset.y + r.height,
                     uv0.x, uv0.y, uv1.x, uv1.y, r.glyphAdvanceX)
         }
         // Build all fonts lookup tables
@@ -882,7 +893,7 @@ class FontAtlas {
 
         // Ellipsis character is required for rendering elided text. We prefer using U+2026 (horizontal ellipsis).
         // However some old fonts may contain ellipsis at U+0085. Here we auto-detect most suitable ellipsis character.
-        // FIXME: Also note that 0x2026 is currently seldomly included in our font ranges. Because of this we are more likely to use three individual dots.
+        // FIXME: Also note that 0x2026 is currently seldom included in our font ranges. Because of this we are more likely to use three individual dots.
         fonts.filter { it.ellipsisChar == '\uffff' }.forEach { font ->
             for (ellipsisVariant in charArrayOf('\u2026', '\u0085')) {
                 if (font.findGlyphNoFallback(ellipsisVariant) != null) { // Verify glyph exists
@@ -897,7 +908,7 @@ class FontAtlas {
 
         assert(customRectIds[0] >= 0 && texPixelsAlpha8 != null)
         val r = customRects[customRectIds[0]]
-        assert(r.id == DefaultTexData.id && r.isPacked)
+        assert(r.isPacked)
 
         val w = texSize.x
         if (flags hasnt FontAtlasFlag.NoMouseCursors) {
@@ -947,7 +958,6 @@ class FontAtlas {
     object DefaultTexData {
         val wHalf = 108
         val h = 27
-        val id = 0x80000000.i
         val pixels = run {
             val s = StringBuilder()
             s += "..-         -XXXXXXX-    X    -           X           -XXXXXXX          -          XXXXXXX-     XX          "

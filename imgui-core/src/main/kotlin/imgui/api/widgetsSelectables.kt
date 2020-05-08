@@ -12,8 +12,10 @@ import imgui.ImGui.itemSize
 import imgui.ImGui.markItemEdited
 import imgui.ImGui.popColumnsBackground
 import imgui.ImGui.popStyleColor
+import imgui.ImGui.popTableBackground
 import imgui.ImGui.pushColumnsBackground
 import imgui.ImGui.pushStyleColor
+import imgui.ImGui.pushTableBackground
 import imgui.ImGui.renderFrame
 import imgui.ImGui.renderNavHighlight
 import imgui.ImGui.renderTextClipped
@@ -56,6 +58,8 @@ interface widgetsSelectables {
 
         if (flags has Sf.SpanAllColumns && window.dc.currentColumns != null)  // FIXME-OPT: Avoid if vertically clipped.
             pushColumnsBackground()
+        else if (flags has Sf.SpanAllColumns && g.currentTable != null) // FIXME-TABLE: Make it possible to colorize a whole line
+            pushTableBackground()
 
         // Submit label or explicit size to ItemSize(), whereas ItemAdd() will submit a larger/spanning rectangle.
         val id = window.getID(label)
@@ -66,6 +70,7 @@ interface widgetsSelectables {
         itemSize(size, 0f)
 
         // Fill horizontal space
+        // FIXME-TABLE: Span row min
         val minX = if(flags has Sf.SpanAllColumns) window.contentRegionRect.min.x else pos.x
         val maxX = if(flags has Sf.SpanAllColumns) window.contentRegionRect.max.x else contentRegionMaxAbs.x
         if (sizeArg.x == 0f || flags has Sf._SpanAvailWidth)
@@ -100,6 +105,8 @@ interface widgetsSelectables {
         if (!itemAdd) {
             if (flags has Sf.SpanAllColumns && window.dc.currentColumns != null)
                 pushColumnsBackground()
+            else if (flags has Sf.SpanAllColumns && g.currentTable != null)
+                popTableBackground()
             return false
         }
 

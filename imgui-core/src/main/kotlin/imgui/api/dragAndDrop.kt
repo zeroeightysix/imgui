@@ -16,8 +16,9 @@ import imgui.internal.classes.Window
 import imgui.internal.*
 import imgui.DragDropFlag as Ddf
 
-/** Drag and Drop
- *  - [BETA API] API may evolve! */
+// Drag and Drop
+// - [BETA API] API may evolve!
+// - If you stop calling BeginDragDropSource() the payload is preserved however it won't have a preview tooltip (we currently display a fallback "..." tooltip as replacement)
 interface dragAndDrop {
 
     /** Call when the current item is active. If this return true, you can call SetDragDropPayload() + EndDragDropSource()

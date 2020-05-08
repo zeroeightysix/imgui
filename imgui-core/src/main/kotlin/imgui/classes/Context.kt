@@ -426,6 +426,12 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
     /** Local buffer for small payloads */
     var dragDropPayloadBufLocal = ByteBuffer.allocate(16)
 
+    // Table
+    var currentTable: Table? = null
+    val tables = Pool { Table() }
+    val currentTableStack = ArrayList<PtrOrIndex>()
+    val drawChannelsTempMergeBuffer = ArrayList<DrawChannel>()
+
 
     // Tab bars
     var currentTabBar: TabBar? = null
@@ -506,6 +512,9 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
     /** ImGuiWindow .ini settings entries (parsed from the last loaded .ini file and maintained on saving) */
     val settingsWindows = ArrayList<WindowSettings>()
 
+    /** Table .ini settings entries */
+    val settingsTables = ArrayList<TableSettings>()
+
     //------------------------------------------------------------------
     // Capture/Logging
     //------------------------------------------------------------------
@@ -575,7 +584,7 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
         assert(!g.initialized && !g.settingsLoaded)
 
         // Add .ini handle for ImGuiWindow type
-        g.settingsHandlers += SettingsHandler().apply{
+        g.settingsHandlers += SettingsHandler().apply {
             typeName = "Window"
             typeHash = hash("Window")
             readOpenFn = ::windowSettingsHandler_ReadOpen

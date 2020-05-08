@@ -134,6 +134,7 @@ class Rect {
     }
 
     val isInverted get() = min.x > max.x || min.y > max.y
+    fun toVec4() = Vec4(min.x, min.y, max.x, max.y)
     val isFinite get() = min.x != Float.MAX_VALUE
 
     fun put(min: Vec2, max: Vec2) {
