@@ -183,10 +183,10 @@ internal interface table {
 
         // Setup default columns state. Clear data if columns count changed
         val storedSize = table.columns.size
-        if (storedSize != 0 && storedSize != columnsCount) {
+//        if (storedSize != 0 && storedSize != columnsCount) {
 //            table.rawData.clear()
 //        }
-//        if (table.rawData.isEmpty) {
+        if (table.columns.isEmpty()) {
             // Allocate single buffer for our arrays
 //            val spanAllocator = SpanAllocator(2)
             table.displayOrderToIndex = ByteArray(columnsCount)

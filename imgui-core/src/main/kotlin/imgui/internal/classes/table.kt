@@ -318,7 +318,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 55
+            val b = 1L shr 55
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -332,7 +332,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 54
+            val b = 1L shr 54
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -344,7 +344,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 53
+            val b = 1L shr 53
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -356,7 +356,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 52
+            val b = 1L shr 52
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -370,7 +370,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 51
+            val b = 1L shr 51
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -384,7 +384,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 50
+            val b = 1L shr 50
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -397,7 +397,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 49
+            val b = 1L shr 49
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -409,7 +409,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 48
+            val b = 1L shr 48
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -423,7 +423,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 47
+            val b = 1L shr 47
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -437,7 +437,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 46
+            val b = 1L shr 46
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -450,7 +450,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 45
+            val b = 1L shr 45
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -464,7 +464,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 44
+            val b = 1L shr 44
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -478,7 +478,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 43
+            val b = 1L shr 43
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -693,7 +693,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shl 47
+            val b = 1L shr 47
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -706,7 +706,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shl 46
+            val b = 1L shr 46
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -720,7 +720,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shl 45
+            val b = 1L shr 45
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -733,7 +733,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shl 44
+            val b = 1L shr 44
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
