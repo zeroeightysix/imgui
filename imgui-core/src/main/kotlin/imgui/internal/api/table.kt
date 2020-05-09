@@ -50,10 +50,8 @@ internal interface table {
 
     fun findTableByID(id: ID): Table? = g.tables.getByKey(id)
 
-    fun beginTableEx(
-            name: String, id: ID, columnsCount: Int, flags_: TableFlags = Tf.None.i,
-            outerSize: Vec2 = Vec2(), innerWidth: Float = 0f
-    ): Boolean {
+    fun beginTableEx(name: String, id: ID, columnsCount: Int, flags_: TableFlags = Tf.None.i,
+            outerSize: Vec2 = Vec2(), innerWidth: Float = 0f): Boolean {
 
         var flags = flags_
 
@@ -62,7 +60,7 @@ internal interface table {
             return false
 
         // Sanity checks
-        assert(columnsCount > 0 && columnsCount <= TABLE_MAX_COLUMNS) { "Only 1..64 columns allowed!" }
+        assert(columnsCount in 1..TABLE_MAX_COLUMNS) { "Only 1..64 columns allowed!" }
         if (flags has Tf.ScrollX)
             assert(innerWidth >= 0f)
 
@@ -185,9 +183,10 @@ internal interface table {
 
         // Setup default columns state. Clear data if columns count changed
         val storedSize = table.columns.size
-        if (storedSize != 0 && storedSize != columnsCount)
-            table.rawData.clear()
-        if (table.rawData.isEmpty) {
+        if (storedSize != 0 && storedSize != columnsCount) {
+//            table.rawData.clear()
+//        }
+//        if (table.rawData.isEmpty) {
             // Allocate single buffer for our arrays
 //            val spanAllocator = SpanAllocator(2)
             table.displayOrderToIndex = ByteArray(columnsCount)

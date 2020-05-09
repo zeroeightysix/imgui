@@ -67,7 +67,7 @@ class Style {
     var itemInnerSpacing = Vec2(4)
 
     /** Padding within a table cell */
-    var cellPadding = Vec2()
+    var cellPadding = Vec2(4, 2)
 
     /** Expand reactive bounding box for touch-based system where touch position is not accurate enough. Unfortunately
      *  we don't sort widgets so priority on overlap will always be given to the first widget. So don't grow this too much!   */

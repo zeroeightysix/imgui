@@ -6,6 +6,8 @@ import imgui.ImGui.button
 import imgui.ImGui.checkbox
 import imgui.ImGui.collapsingHeader
 import imgui.ImGui.endTable
+import imgui.ImGui.popID
+import imgui.ImGui.popStyleVar
 import imgui.ImGui.pushID
 import imgui.ImGui.pushStyleVar
 import imgui.ImGui.sameLine
@@ -983,15 +985,14 @@ object ShowDemoWindowTables {
                                 table_draw_list_draw_cmd_count - 1, table_scroll_cur.x, table_scroll_max.x, table_scroll_cur.y, table_scroll_max.y)
                 }
                 ImGui::TreePop()
-            }
+            } */
 
-            ImGui::PopID()
+        popID()
 
-            ShowDemoWindowColumns()
+        ShowDemoWindowColumns()
 
-            if (disableIndent)
-                ImGui::PopStyleVar()
-        }*/
+        if (disableIndent)
+            popStyleVar()
     }
 
     fun basic() = treeNode("Basic") {
