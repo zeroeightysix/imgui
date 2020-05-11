@@ -100,14 +100,14 @@ class Table {
     var instanceCurrent: Int
         get() = (longs[0] shr 48).s.i
         set(value) {
-            longs[0] = longs[0] or ((value.L and 0xffff) shl 48)
+            longs[0] = (longs[0] and 0x0000_ffff_ffff_ffff) or (value.L shl 48)
         }
 
     /** Mark which instance (generally 0) of the same ID is being interacted with */
     var instanceInteracted: Int
         get() = (longs[0] shr 32).s.i
         set(value) {
-            longs[0] = longs[0] or ((value.L and 0xffff) shl 32)
+            longs[0] = (longs[0] and 0xffff_0000_ffff_ffffUL) or ((value.L and 0xffff) shl 32)
         }
     var rowPosY1 = 0f
     var rowPosY2 = 0f
@@ -121,12 +121,12 @@ class Table {
     var rowFlags: TableRowFlags
         get() = (longs[0] shr 16).s.i
         set(value) {
-            longs[0] = longs[0] or ((value.L and 0xffff) shl 16)
+            longs[0] = (longs[0] and 0xffff_ffff_0000_ffffUL) or ((value.L and 0xffff) shl 16)
         }
     var lastRowFlags: TableRowFlags
         get() = longs[0].s.i
         set(value) {
-            longs[0] = longs[0] or (value.L and 0xffff)
+            longs[0] = (longs[0] and 0xffff_ffff_ffff_0000UL) or (value.L and 0xffff)
         }
 
     /** Counter for alternating background colors (can be fast-forwarded by e.g clipper) */
@@ -196,119 +196,119 @@ class Table {
     var sortSpecsCount: Int
         get() = (longs[1] shr 56).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 56)
+            longs[1] = (longs[1] and 0x00ff_ffff_ffff_ffff) or (value.L shl 56)
         }
 
     /** Count calls to TableSetupColumn() */
     var declColumnsCount: Int
         get() = (longs[1] shr 48).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 48)
+            longs[1] = (longs[1] and 0xff00_ffff_ffff_ffffUL) or ((value.L and 0xff) shl 48)
         }
 
     /** [DEBUG] Unlike HoveredColumnBorder this doesn't fulfill all Hovering rules properly. Used for debugging/tools for now. */
     var hoveredColumnBody: Int
         get() = (longs[1] shr 40).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 40)
+            longs[1] = (longs[1] and 0xffff_00ff_ffff_ffffUL) or ((value.L and 0xff) shl 40)
         }
 
     /** Index of column whose right-border is being hovered (for resizing). */
     var hoveredColumnBorder: Int
         get() = (longs[1] shr 32).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 32)
+            longs[1] = (longs[1] and 0xffff_ff00_ffff_ffffUL) or ((value.L and 0xff) shl 32)
         }
 
     /** Index of column being resized. Reset when InstanceCurrent==0. */
     var resizedColumn: Int
         get() = (longs[1] shr 24).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 24)
+            longs[1] = (longs[1] and 0xffff_ffff_00ff_ffffUL) or ((value.L and 0xff) shl 24)
         }
 
     /** Index of column being resized from previous frame. */
     var lastResizedColumn: Int
         get() = (longs[1] shr 16).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 16)
+            longs[1] = (longs[1] and 0xffff_ffff_ff00_ffffUL) or ((value.L and 0xff) shl 16)
         }
 
     /** Index of column header being held. */
     var heldHeaderColumn: Int
         get() = (longs[1] shr 8).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 8)
+            longs[1] = (longs[1] and 0xffff_ffff_ffff_00ffUL) or ((value.L and 0xff) shl 8)
         }
 
     // Index of column being reordered. (not cleared)
     var reorderColumn: Int
         get() = longs[1].b.i
         set(value) {
-            longs[1] = longs[1] or (value.L and 0xff)
+            longs[1] = (longs[1] and 0xffff_ffff_ffff_ff00UL) or (value.L and 0xff)
         }
 
     /** -1 or +1 */
     var reorderColumnDir: Int
         get() = (longs[2] shr 56).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 56)
+            longs[2] = (longs[2] and 0x00ff_ffff_ffff_ffff) or (value.L shl 56)
         }
 
     /** Index of right-most non-hidden column. */
     var rightMostActiveColumn: Int
         get() = (longs[2] shr 48).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 48)
+            longs[2] = (longs[2] and 0xff00_ffff_ffff_ffffUL) or ((value.L and 0xff) shl 48)
         }
 
     /** Display order of left-most stretched column. */
     var leftMostStretchedColumnDisplayOrder: Int
         get() = (longs[2] shr 40).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 40)
+            longs[2] = (longs[2] and 0xffff_00ff_ffff_ffffUL) or ((value.L and 0xff) shl 40)
         }
 
     /** Column right-clicked on, of -1 if opening context menu from a neutral/empty spot */
     var contextPopupColumn: Int
         get() = (longs[2] shr 32).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 32)
+            longs[2] = (longs[2] and 0xffff_ff00_ffff_ffffUL) or ((value.L and 0xff) shl 32)
         }
 
     /** Redirect non-visible columns here. */
     var dummyDrawChannel: Int
         get() = (longs[2] shr 24).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 24)
+            longs[2] = (longs[2] and 0xffff_ffff_00ff_ffffUL) or ((value.L and 0xff) shl 24)
         }
 
     /** Requested frozen rows count */
     var freezeRowsRequest: Int
         get() = (longs[2] shr 16).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 16)
+            longs[2] = (longs[2] and 0xffff_ffff_ff00_ffffUL) or ((value.L and 0xff) shl 16)
         }
 
     /** Actual frozen row count (== FreezeRowsRequest, or == 0 when no scrolling offset) */
     var freezeRowsCount: Int
         get() = (longs[2] shr 8).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 8)
+            longs[2] = (longs[2] and 0xffff_ffff_ffff_00ffUL) or ((value.L and 0xff) shl 8)
         }
 
     /** Requested frozen columns count */
     var freezeColumnsRequest: Int
         get() = longs[2].b.i
         set(value) {
-            longs[2] = longs[2] or (value.L and 0xff)
+            longs[2] = (longs[2] and 0xffff_ffff_ffff_ff00UL) or (value.L and 0xff)
         }
 
     /** Actual frozen columns count (== FreezeColumnsRequest, or == 0 when no scrolling offset) */
     var freezeColumnsCount: Int
         get() = (longs[3] shr 56).b.i
         set(value) {
-            longs[3] = longs[3] or ((value.L and 0xff) shl 56)
+            longs[3] = (longs[3] and 0x00ff_ffff_ffff_ffff) or (value.L shl 56)
         }
 
     /** Set by TableUpdateLayout() which is called when beginning the first row. */
@@ -318,7 +318,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 55
+            val b = 1L shl 55
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -332,7 +332,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 54
+            val b = 1L shl 54
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -344,7 +344,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 53
+            val b = 1L shl 53
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -356,7 +356,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 52
+            val b = 1L shl 52
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -370,7 +370,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 51
+            val b = 1L shl 51
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -384,7 +384,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 50
+            val b = 1L shl 50
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -397,7 +397,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 49
+            val b = 1L shl 49
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -409,7 +409,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 48
+            val b = 1L shl 48
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -423,7 +423,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 47
+            val b = 1L shl 47
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -437,7 +437,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 46
+            val b = 1L shl 46
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -450,7 +450,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 45
+            val b = 1L shl 45
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -464,7 +464,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 44
+            val b = 1L shl 44
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -478,7 +478,7 @@ class Table {
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shr 43
+            val b = 1L shl 43
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -535,26 +535,34 @@ class Table {
 class TableColumnSettings {
     var widthOrWeight = 0f
     var userID: ID = 0
+
+    /*
+        ImS8    Index
+        ImS8    DisplayOrder
+        ImS8    SortOrder
+        ImS8    SortDirection : 7
+        ImU8    Visible : 1
+     */
     private var int = 0
     var index: Int
         get() = (int shr 24).b.i
         set(value) {
-            int = int or ((value and 0xff) shl 24)
+            int = (int and 0x00ff_ffff) or (value shl 24)
         }
     var displayOrder: Int
         get() = (int shr 16).b.i
         set(value) {
-            int = int or ((value and 0xff) shl 16)
+            int = (int and 0xff00_ffff.i) or ((value and 0xff) shl 16)
         }
     var sortOrder: Int
         get() = (int shr 8).b.i
         set(value) {
-            int = int or ((value and 0xff) shl 8)
+            int = (int and 0xffff_00ff.i) or ((value and 0xff) shl 8)
         }
     var sortDirection: SortDirection
-        get() = SortDirection.values()[((int shr 1) and 0b00000000_01111111).b.i]
+        get() = SortDirection.values()[((int shr 1) and 0b0111_1111).b.i]
         set(value) {
-            int = int or ((value.ordinal shl 1) and 0b00000000_11111110)
+            int = (int and 0b1111_1111_0000_0001) or ((value.ordinal shl 1) and 0b00000000_11111110)
         }
 
     /** This is called Active in ImGuiTableColumn, in .ini file we call it Visible. */
@@ -563,7 +571,7 @@ class TableColumnSettings {
         set(value) {
             int = when {
                 value -> int or 1
-                else -> int and 1.inv()
+                else -> int and 0b1111_1111_1111_1110
             }
         }
 
@@ -649,6 +657,13 @@ class TableColumn {
             ImS8                    DrawChannelCurrent
             ImS8                    DrawChannelRowsBeforeFreeze
             ImS8                    DrawChannelRowsAfterFreeze
+
+    [2] =   ImS8                    PrevActiveColumn
+            ImS8                    NextActiveColumn
+            ImS8                    AutoFitQueue
+            ImS8                    CannotSkipItemsQueue
+            ImS8                    SortOrder
+            ImS8                    SortDirection
      */
     private val longs = LongArray(3)
 
@@ -656,34 +671,34 @@ class TableColumn {
     var contentWidthRowsFrozen: Int
         get() = (longs[0] shr 48).s.i
         set(value) {
-            longs[0] = longs[0] or ((value.L and 0xffff) shl 48)
+            longs[0] = (longs[0] and 0x0000_ffff_ffff_ffff) or (value.L shl 48)
         }
 
     /** (encoded as ImS16 because we actually rarely use those width) */
     var contentWidthRowsUnfrozen: Int
         get() = (longs[0] shr 32).s.i
         set(value) {
-            longs[0] = longs[0] or ((value.L and 0xffff) shl 32)
+            longs[0] = (longs[0] and 0xffff_0000_ffff_ffffUL) or ((value.L and 0xffff) shl 32)
         }
 
     /** TableHeader() automatically softclip itself + report ideal desired size, to avoid creating extraneous draw calls */
     var contentWidthHeadersUsed: Int
         get() = (longs[0] shr 16).s.i
         set(value) {
-            longs[0] = longs[0] or ((value.L and 0xffff) shl 16)
+            longs[0] = (longs[0] and 0xffff_ffff_0000_ffffUL) or ((value.L and 0xffff) shl 16)
         }
 
     var contentWidthHeadersDesired: Int
         get() = longs[0].s.i
         set(value) {
-            longs[0] = longs[0] or (value.L and 0xffff)
+            longs[0] = (longs[0] and 0xffff_ffff_ffff_0000UL) or (value.L and 0xffff)
         }
 
     /** Offset into parent ColumnsNames[] */
     var nameOffset: Int
         get() = (longs[1] shr 48).s.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xffff) shl 48)
+            longs[1] = (longs[1] and 0x0000_ffff_ffff_ffff) or (value.L shl 48)
         }
 
     /** Is the column not marked Hidden by the user (regardless of clipping). We're not calling this "Visible" here because visibility also depends on clipping. */
@@ -693,7 +708,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shr 47
+            val b = 1L shl 47
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -706,7 +721,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shr 46
+            val b = 1L shl 46
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -720,7 +735,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shr 45
+            val b = 1L shl 45
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -733,7 +748,7 @@ class TableColumn {
             return (longs[1] and b) == b
         }
         set(value) {
-            val b = 1L shr 44
+            val b = 1L shl 44
             longs[1] = when {
                 value -> longs[1] or b
                 else -> longs[1] and b.inv()
@@ -744,78 +759,78 @@ class TableColumn {
     var displayOrder: Int
         get() = (longs[1] shr 32).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 32)
+            longs[1] = (longs[1] and 0xffff_ff00_ffff_ffffUL) or ((value.L and 0xff) shl 32)
         }
 
     /** Index within active/visible set (<= IndexToDisplayOrder) */
     var indexWithinActiveSet: Int
         get() = (longs[1] shr 24).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 24)
+            longs[1] = (longs[1] and 0xffff_ffff_00ff_ffffUL) or ((value.L and 0xff) shl 24)
         }
 
     /** Index within DrawSplitter.Channels[] */
     var drawChannelCurrent: Int
         get() = (longs[1] shr 16).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 16)
+            longs[1] = (longs[1] and 0xffff_ffff_ff00_ffffUL) or ((value.L and 0xff) shl 16)
         }
 
     var drawChannelRowsBeforeFreeze: Int
         get() = (longs[1] shr 8).b.i
         set(value) {
-            longs[1] = longs[1] or ((value.L and 0xff) shl 8)
+            longs[1] = (longs[1] and 0xffff_ffff_ffff_00ffUL) or ((value.L and 0xff) shl 8)
         }
     var drawChannelRowsAfterFreeze: Int
         get() = longs[1].b.i
         set(value) {
-            longs[1] = longs[1] or (value.L and 0xff)
+            longs[1] = (longs[1] and 0xffff_ffff_ffff_ff00UL) or (value.L and 0xff)
         }
 
     /** Index of prev active column within Columns[], -1 if first active column */
     var prevActiveColumn: Int
         get() = (longs[2] shr 56).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 56)
+            longs[2] = (longs[2] and 0x00ff_ffff_ffff_ffff) or (value.L shl 56)
         }
 
     /** Index of next active column within Columns[], -1 if last active column */
     var nextActiveColumn: Int
         get() = (longs[2] shr 48).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 48)
+            longs[2] = (longs[2] and 0xff00_ffff_ffff_ffffUL) or ((value.L and 0xff) shl 48)
         }
 
     /** Queue of 8 values for the next 8 frames to request auto-fit */
     var autoFitQueue: Int
         get() = (longs[2] shr 40).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 40)
+            longs[2] = (longs[2] and 0xffff_00ff_ffff_ffffUL) or ((value.L and 0xff) shl 40)
         }
 
     /** Queue of 8 values for the next 8 frames to disable Clipped/SkipItem */
     var cannotSkipItemsQueue: Int
         get() = (longs[2] shr 32).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 32)
+            longs[2] = (longs[2] and 0xffff_ff00_ffff_ffffUL) or ((value.L and 0xff) shl 32)
         }
 
     /** -1: Not sorting on this column */
     var sortOrder: Int
         get() = (longs[2] shr 24).b.i
         set(value) {
-            longs[2] = longs[2] or ((value.L and 0xff) shl 24)
+            longs[2] = (longs[2] and 0xffff_ffff_00ff_ffffUL) or ((value.L and 0xff) shl 24)
         }
 
     /** enum ImGuiSortDirection_ */
     var sortDirection: SortDirection
-        get() = SortDirection.values()[(longs[2] shr 32).b.i]
+        get() = SortDirection.values()[(longs[2] shr 16).b.i]
         set(value) {
-            longs[2] = longs[2] or ((value.ordinal.L and 0xff) shl 32)
+            longs[2] = (longs[2] and 0xffff_ffff_ff00_ffffUL) or ((value.ordinal.L and 0xff) shl 16)
         }
 
     val sortDirection_: Int
-        get() = (longs[2] shr 32).b.i
+        get() = (longs[2] shr 16).b.i
 
     init {
         nameOffset = -1
@@ -870,12 +885,12 @@ class TableSettings(columnsCount: Int) {
     var columnsCount: Int
         get() = (int shr 24).b.i
         set(value) {
-            int = int and ((value and 0xff) shl 24)
+            int = (int and 0x00ff_ffff) and (value shl 24)
         }
     var columnsCountMax: Int
-        get() = (int shr 16).b.i
+        get() = int.b.i
         set(value) {
-            int = int and ((value and 0xff) shl 16)
+            int = (int and 0xff00_ffff.i) and ((value and 0xff) shl 16)
         }
 
     init {

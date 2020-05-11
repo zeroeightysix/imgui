@@ -998,7 +998,7 @@ internal interface table {
                     var n = -1 // [JVM] trick
                     while (++n < splitter._count && mergeChannelsCount != 0) {
                         // Copy + overwrite new clip rect
-                        if (mergeGroup.channelsMask testBit n)
+                        if (!mergeGroup.channelsMask.testBit(n))
                             continue
                         mergeGroup.channelsMask clearBit n
                         mergeChannelsCount--

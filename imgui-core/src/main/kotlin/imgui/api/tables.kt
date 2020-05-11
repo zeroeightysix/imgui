@@ -19,6 +19,7 @@ import imgui.ImGui.isItemActive
 import imgui.ImGui.isItemHovered
 import imgui.ImGui.isMouseDragging
 import imgui.ImGui.isMouseReleased
+import imgui.ImGui.itemSize
 import imgui.ImGui.openPopup
 import imgui.ImGui.popID
 import imgui.ImGui.popStyleColor
@@ -226,7 +227,7 @@ interface tables {
 
         // Finalize table height
         innerWindow.skipItems = table.hostSkipItems
-        innerWindow.dc.cursorMaxPos = table.hostCursorMaxPos
+        innerWindow.dc.cursorMaxPos put table.hostCursorMaxPos
         if (innerWindow != outerWindow) {
             table.outerRect.max.y = table.outerRect.max.y max (innerWindow.pos.y + innerWindow.size.y)
             innerWindow.dc.cursorMaxPos.y = table.rowPosY2
@@ -301,9 +302,9 @@ interface tables {
             outerWindow.dc.cursorMaxPos.x = backupOuterCursorPosX + table.columnsTotalWidth + 1f + innerWindow.scrollbarSizes.x
         } else {
             popID()
-            val itemSize = table.outerRect.size
-            itemSize.x = table.columnsTotalWidth
-            itemSize(itemSize)
+            val itemSz = table.outerRect.size
+            itemSz.x = table.columnsTotalWidth
+            itemSize(itemSz)
         }
 
         // Save settings
