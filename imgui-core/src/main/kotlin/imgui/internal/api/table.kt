@@ -853,14 +853,16 @@ internal interface table {
             val outerCol = table.borderColorStrong
             if (innerWindow != outerWindow)
                 outerBorder expand 1f
-            if (table.flags and Tf.BordersOuter == Tf.BordersOuter.i)
-                outerDrawlist.addRect(outerBorder.min, outerBorder.max, outerCol)
-            else if (table.flags has Tf.BordersVOuter) {
-                outerDrawlist.addLine(outerBorder.min, Vec2(outerBorder.min.x, outerBorder.max.y), outerCol)
-                outerDrawlist.addLine(Vec2(outerBorder.max.x, outerBorder.min.y), outerBorder.max, outerCol)
-            } else if (table.flags has Tf.BordersHOuter) {
-                outerDrawlist.addLine(outerBorder.min, Vec2(outerBorder.max.x, outerBorder.min.y), outerCol)
-                outerDrawlist.addLine(Vec2(outerBorder.min.x, outerBorder.max.y), outerBorder.max, outerCol)
+            when {
+                table.flags and Tf.BordersOuter == Tf.BordersOuter.i -> outerDrawlist.addRect(outerBorder.min, outerBorder.max, outerCol)
+                table.flags has Tf.BordersVOuter -> {
+                    outerDrawlist.addLine(outerBorder.min, Vec2(outerBorder.min.x, outerBorder.max.y), outerCol)
+                    outerDrawlist.addLine(Vec2(outerBorder.max.x, outerBorder.min.y), outerBorder.max, outerCol)
+                }
+                table.flags has Tf.BordersHOuter -> {
+                    outerDrawlist.addLine(outerBorder.min, Vec2(outerBorder.max.x, outerBorder.min.y), outerCol)
+                    outerDrawlist.addLine(Vec2(outerBorder.min.x, outerBorder.max.y), outerBorder.max, outerCol)
+                }
             }
         }
         if (table.flags has Tf.BordersHInner && table.rowPosY2 < table.outerRect.max.y) {

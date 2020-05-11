@@ -22,6 +22,7 @@ import imgui.ImGui.beginPopupContextWindow
 import imgui.ImGui.beginPopupModal
 import imgui.ImGui.beginTabBar
 import imgui.ImGui.beginTabItem
+import imgui.ImGui.beginTable
 import imgui.ImGui.beginTooltip
 import imgui.ImGui.button
 import imgui.ImGui.checkbox
@@ -42,6 +43,7 @@ import imgui.ImGui.endMenuBar
 import imgui.ImGui.endPopup
 import imgui.ImGui.endTabBar
 import imgui.ImGui.endTabItem
+import imgui.ImGui.endTable
 import imgui.ImGui.endTooltip
 import imgui.ImGui.imageButton
 import imgui.ImGui.indent
@@ -592,6 +594,18 @@ object dsl {
                 block()
             } finally {
                 listBoxFooter()
+            }
+    }
+
+    // tables
+
+    inline fun table(strId: String, columnsCount: Int, flags: TableFlags = TableFlag.None.i, outerSize: Vec2 = Vec2(),
+                     innerWidth: Float = 0f, block: () -> Unit) {
+        if(beginTable(strId, columnsCount, flags, outerSize, innerWidth))
+            try {
+                block()
+            } finally {
+                endTable()
             }
     }
 }

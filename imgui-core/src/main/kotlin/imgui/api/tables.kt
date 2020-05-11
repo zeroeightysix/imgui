@@ -293,7 +293,7 @@ interface tables {
         // Layout in outer window
         innerWindow.workRect = table.hostWorkRect
         innerWindow.skipItems = table.hostSkipItems
-        outerWindow.dc.cursorPos = table.outerRect.min
+        outerWindow.dc.cursorPos put table.outerRect.min
         outerWindow.dc.columnsOffset = 0f
         if (innerWindow !== outerWindow) {
             // Override EndChild's ItemSize with our own to enable auto-resize on the X axis when possible

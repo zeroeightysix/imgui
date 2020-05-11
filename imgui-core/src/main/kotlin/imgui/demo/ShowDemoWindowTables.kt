@@ -1,11 +1,15 @@
 package imgui.demo
 
+import glm_.vec2.Vec2
+import imgui.COL32
 import imgui.ImGui
 import imgui.ImGui.beginTable
 import imgui.ImGui.button
 import imgui.ImGui.checkbox
+import imgui.ImGui.checkboxFlags
 import imgui.ImGui.collapsingHeader
 import imgui.ImGui.endTable
+import imgui.ImGui.indent
 import imgui.ImGui.popID
 import imgui.ImGui.popStyleVar
 import imgui.ImGui.pushID
@@ -17,15 +21,21 @@ import imgui.ImGui.tableNextCell
 import imgui.ImGui.tableNextRow
 import imgui.ImGui.tableSetColumnIndex
 import imgui.ImGui.text
+import imgui.ImGui.unindent
 import imgui.StyleVar
 import imgui.api.demoDebugInformations.Companion.helpMarker
-import imgui.dsl
+import imgui.dsl.table
 import imgui.dsl.treeNode
+import imgui.TableFlag as Tf
 
 object ShowDemoWindowTables {
 
     // Options
     var disableIndent = false
+
+    // Expose a few Borders related flags interactively
+    var flags = Tf.BordersOuter or Tf.RowBg
+    var displayWidth = false
 
     operator fun invoke() {
 
@@ -66,62 +76,12 @@ object ShowDemoWindowTables {
             setNextItemOpen(openAction != 0)
         basic()
 
-        /*if (openAction != -1)
-            ImGui::SetNextItemOpen(open_action != 0)
-        if (ImGui::TreeNode("Borders, background")) {
-            // Expose a few Borders related flags interactively
-            static ImGuiTableFlags flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_RowBg
-            static bool display_width = false
-            ImGui::CheckboxFlags("ImGuiTableFlags_RowBg", (unsigned int *)& flags, ImGuiTableFlags_RowBg)
-            ImGui::CheckboxFlags("ImGuiTableFlags_Borders", (unsigned int *)& flags, ImGuiTableFlags_Borders)
-            ImGui::SameLine(); HelpMarker("ImGuiTableFlags_Borders\n = ImGuiTableFlags_BordersVInner\n | ImGuiTableFlags_BordersVOuter\n | ImGuiTableFlags_BordersHInner\n | ImGuiTableFlags_BordersHOuter")
-            ImGui::Indent()
-
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersH", (unsigned int *)& flags, ImGuiTableFlags_BordersH)
-            ImGui::Indent()
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersHOuter", (unsigned int *)& flags, ImGuiTableFlags_BordersHOuter)
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersHInner", (unsigned int *)& flags, ImGuiTableFlags_BordersHInner)
-            ImGui::Unindent()
-
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersV", (unsigned int *)& flags, ImGuiTableFlags_BordersV)
-            ImGui::Indent()
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersVOuter", (unsigned int *)& flags, ImGuiTableFlags_BordersVOuter)
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersVInner", (unsigned int *)& flags, ImGuiTableFlags_BordersVInner)
-            ImGui::Unindent()
-
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersOuter", (unsigned int *)& flags, ImGuiTableFlags_BordersOuter)
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersInner", (unsigned int *)& flags, ImGuiTableFlags_BordersInner)
-            ImGui::Unindent()
-            ImGui::Checkbox("Debug Display width", & display_width)
-
-            if (ImGui::BeginTable("##table1", 3, flags)) {
-                for (int row = 0; row < 5; row++)
-                {
-                    ImGui::TableNextRow()
-                    for (int column = 0; column < 3; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        if (display_width) {
-                            ImVec2 p = ImGui ::GetCursorScreenPos()
-                            ImDrawList * draw_list = ImGui::GetWindowDrawList()
-                            float x1 = p . x
-                                    float x2 = ImGui ::GetWindowPos().x + ImGui::GetContentRegionMax().x
-                            float x3 = draw_list->GetClipRectMax().x
-                            float y2 = p . y +ImGui::GetTextLineHeight()
-                            draw_list->AddLine(ImVec2(x1, y2), ImVec2(x3, y2), IM_COL32(255, 255, 0, 255)) // Hard clipping limit
-                            draw_list->AddLine(ImVec2(x1, y2), ImVec2(x2, y2), IM_COL32(255, 0, 0, 255))   // Normal limit
-                            ImGui::Text("w=%.2f", x2 - x1)
-                        } else {
-                            ImGui::Text("Hello %d,%d", row, column)
-                        }
-                    }
-                }
-                ImGui::EndTable()
-            }
-            ImGui::TreePop()
-        }
-
         if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        bordersBackground()
+
+
+        /*if (openAction != -1)
             ImGui::SetNextItemOpen(open_action != 0)
         if (ImGui::TreeNode("Resizable, stretch")) {
             // By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
@@ -1038,6 +998,52 @@ object ShowDemoWindowTables {
                 text("Item $item")
             }
             endTable()
+        }
+    }
+
+    fun bordersBackground() = treeNode("Borders, background") {
+        // Expose a few Borders related flags interactively
+        checkboxFlags("ImGuiTableFlags_RowBg", ::flags, Tf.RowBg.i)
+        checkboxFlags("ImGuiTableFlags_Borders", ::flags, Tf.Borders.i)
+        sameLine(); helpMarker("ImGuiTableFlags_Borders\n = ImGuiTableFlags_BordersVInner\n | ImGuiTableFlags_BordersVOuter\n | ImGuiTableFlags_BordersHInner\n | ImGuiTableFlags_BordersHOuter")
+        indent()
+
+        checkboxFlags("ImGuiTableFlags_BordersH", ::flags, Tf.BordersH.i)
+        indent()
+        checkboxFlags("ImGuiTableFlags_BordersHOuter", ::flags, Tf.BordersHOuter.i)
+        checkboxFlags("ImGuiTableFlags_BordersHInner", ::flags, Tf.BordersHInner.i)
+        unindent()
+
+        checkboxFlags("ImGuiTableFlags_BordersV", ::flags, Tf.BordersV.i)
+        indent()
+        checkboxFlags("ImGuiTableFlags_BordersVOuter", ::flags, Tf.BordersVOuter.i)
+        checkboxFlags("ImGuiTableFlags_BordersVInner", ::flags, Tf.BordersVInner.i)
+        unindent()
+
+        checkboxFlags("ImGuiTableFlags_BordersOuter", ::flags, Tf.BordersOuter.i)
+        checkboxFlags("ImGuiTableFlags_BordersInner", ::flags, Tf.BordersInner.i)
+        unindent()
+        checkbox("Debug Display width", ::displayWidth)
+
+        table("##table1", 3, flags) {
+            for (row in 0..4) {
+                tableNextRow()
+                for (column in 0..2) {
+                    tableSetColumnIndex(column)
+                    if (displayWidth) {
+                        val p = ImGui.cursorScreenPos
+                        val drawList = ImGui.windowDrawList
+                        val x1 = p.x
+                        val x2 = ImGui.windowPos.x + ImGui.contentRegionMax.x
+                        val x3 = drawList.clipRectMax.x
+                        val y2 = p.y + ImGui.textLineHeight
+                        drawList.addLine(Vec2(x1, y2), Vec2(x3, y2), COL32(255, 255, 0, 255)) // Hard clipping limit
+                        drawList.addLine(Vec2(x1, y2), Vec2(x2, y2), COL32(255, 0, 0, 255))   // Normal limit
+                        text("w=%.2f", x2 - x1)
+                    } else
+                        text("Hello $row,$column")
+                }
+            }
         }
     }
 }

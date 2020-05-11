@@ -121,6 +121,11 @@ class DrawList(sharedData: DrawListSharedData?) {
 
     fun popTextureId() = _textureIdStack.pop().also { updateTextureID() }
 
+    val clipRectMin: Vec2
+        get() = _clipRectStack.last().run { Vec2(x, y) }
+
+    val clipRectMax: Vec2
+        get() = _clipRectStack.last().run { Vec2(z, w) }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Primitives
@@ -133,8 +138,8 @@ class DrawList(sharedData: DrawListSharedData?) {
     /** JVM it's safe to pass directly Vec2 istances, they wont be modified */
     fun addLine(p1: Vec2, p2: Vec2, col: Int, thickness: Float = 1f) {
         if (col hasnt COL32_A_MASK) return
-        pathLineTo(p1 + Vec2(0.5f))
-        pathLineTo(p2 + Vec2(0.5f))
+        pathLineTo(p1 + 0.5f)
+        pathLineTo(p2 + 0.5f)
         pathStroke(col, false, thickness)
     }
 
