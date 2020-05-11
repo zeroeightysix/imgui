@@ -291,7 +291,7 @@ interface tables {
         }
 
         // Layout in outer window
-        innerWindow.workRect = table.hostWorkRect
+        innerWindow.workRect put table.hostWorkRect
         innerWindow.skipItems = table.hostSkipItems
         outerWindow.dc.cursorPos put table.outerRect.min
         outerWindow.dc.columnsOffset = 0f
