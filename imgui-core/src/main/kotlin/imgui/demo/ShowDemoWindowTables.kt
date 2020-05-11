@@ -26,16 +26,13 @@ import imgui.StyleVar
 import imgui.api.demoDebugInformations.Companion.helpMarker
 import imgui.dsl.table
 import imgui.dsl.treeNode
+import imgui.or
 import imgui.TableFlag as Tf
 
 object ShowDemoWindowTables {
 
     // Options
     var disableIndent = false
-
-    // Expose a few Borders related flags interactively
-    var flags = Tf.BordersOuter or Tf.RowBg
-    var displayWidth = false
 
     operator fun invoke() {
 
@@ -80,32 +77,11 @@ object ShowDemoWindowTables {
             setNextItemOpen(openAction != 0)
         bordersBackground()
 
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        resizableStretch()
 
-        /*if (openAction != -1)
-            ImGui::SetNextItemOpen(open_action != 0)
-        if (ImGui::TreeNode("Resizable, stretch")) {
-            // By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
-            // Each columns maintain a sizing weight, and they will occupy all available width.
-            static ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
-            ImGui::CheckboxFlags("ImGuiTableFlags_Resizable", (unsigned int *)& flags, ImGuiTableFlags_Resizable)
-            ImGui::CheckboxFlags("ImGuiTableFlags_BordersV", (unsigned int *)& flags, ImGuiTableFlags_BordersV)
-            ImGui::SameLine(); HelpMarker("Using the _Resizable flag automatically enables the _BordersV flag as well.")
-
-            if (ImGui::BeginTable("##table1", 3, flags)) {
-                for (int row = 0; row < 5; row++)
-                {
-                    ImGui::TableNextRow()
-                    for (int column = 0; column < 3; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        ImGui::Text("Hello %d,%d", row, column)
-                    }
-                }
-                ImGui::EndTable()
-            }
-            ImGui::TreePop()
-        }
-
+/*
         if (openAction != -1)
             ImGui::SetNextItemOpen(open_action != 0)
         if (ImGui::TreeNode("Resizable, fixed")) {
@@ -1001,31 +977,35 @@ object ShowDemoWindowTables {
         }
     }
 
+    // Expose a few Borders related flags interactively
+    var flags0 = Tf.BordersOuter or Tf.RowBg
+    var displayWidth = false
+
     fun bordersBackground() = treeNode("Borders, background") {
         // Expose a few Borders related flags interactively
-        checkboxFlags("ImGuiTableFlags_RowBg", ::flags, Tf.RowBg.i)
-        checkboxFlags("ImGuiTableFlags_Borders", ::flags, Tf.Borders.i)
+        checkboxFlags("ImGuiTableFlags_RowBg", ::flags0, Tf.RowBg.i)
+        checkboxFlags("ImGuiTableFlags_Borders", ::flags0, Tf.Borders.i)
         sameLine(); helpMarker("ImGuiTableFlags_Borders\n = ImGuiTableFlags_BordersVInner\n | ImGuiTableFlags_BordersVOuter\n | ImGuiTableFlags_BordersHInner\n | ImGuiTableFlags_BordersHOuter")
         indent()
 
-        checkboxFlags("ImGuiTableFlags_BordersH", ::flags, Tf.BordersH.i)
+        checkboxFlags("ImGuiTableFlags_BordersH", ::flags0, Tf.BordersH.i)
         indent()
-        checkboxFlags("ImGuiTableFlags_BordersHOuter", ::flags, Tf.BordersHOuter.i)
-        checkboxFlags("ImGuiTableFlags_BordersHInner", ::flags, Tf.BordersHInner.i)
+        checkboxFlags("ImGuiTableFlags_BordersHOuter", ::flags0, Tf.BordersHOuter.i)
+        checkboxFlags("ImGuiTableFlags_BordersHInner", ::flags0, Tf.BordersHInner.i)
         unindent()
 
-        checkboxFlags("ImGuiTableFlags_BordersV", ::flags, Tf.BordersV.i)
+        checkboxFlags("ImGuiTableFlags_BordersV", ::flags0, Tf.BordersV.i)
         indent()
-        checkboxFlags("ImGuiTableFlags_BordersVOuter", ::flags, Tf.BordersVOuter.i)
-        checkboxFlags("ImGuiTableFlags_BordersVInner", ::flags, Tf.BordersVInner.i)
+        checkboxFlags("ImGuiTableFlags_BordersVOuter", ::flags0, Tf.BordersVOuter.i)
+        checkboxFlags("ImGuiTableFlags_BordersVInner", ::flags0, Tf.BordersVInner.i)
         unindent()
 
-        checkboxFlags("ImGuiTableFlags_BordersOuter", ::flags, Tf.BordersOuter.i)
-        checkboxFlags("ImGuiTableFlags_BordersInner", ::flags, Tf.BordersInner.i)
+        checkboxFlags("ImGuiTableFlags_BordersOuter", ::flags0, Tf.BordersOuter.i)
+        checkboxFlags("ImGuiTableFlags_BordersInner", ::flags0, Tf.BordersInner.i)
         unindent()
         checkbox("Debug Display width", ::displayWidth)
 
-        table("##table1", 3, flags) {
+        table("##table1", 3, flags0) {
             for (row in 0..4) {
                 tableNextRow()
                 for (column in 0..2) {
@@ -1042,6 +1022,28 @@ object ShowDemoWindowTables {
                         text("w=%.2f", x2 - x1)
                     } else
                         text("Hello $row,$column")
+                }
+            }
+        }
+    }
+
+    // By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
+    // Each columns maintain a sizing weight, and they will occupy all available width.
+    var flags1 = Tf.Resizable or Tf.BordersOuter or Tf.BordersV
+
+    fun resizableStretch() = treeNode("Resizable, stretch") {
+        // By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
+        // Each columns maintain a sizing weight, and they will occupy all available width.
+        checkboxFlags("ImGuiTableFlags_Resizable", ::flags1, Tf.Resizable.i)
+        checkboxFlags("ImGuiTableFlags_BordersV", ::flags1, Tf.BordersV.i)
+        sameLine(); helpMarker("Using the _Resizable flag automatically enables the _BordersV flag as well.")
+
+        table("##table1", 3, flags1) {
+            for (row in 0..4) {
+                tableNextRow()
+                for (column in 0..2) {
+                    tableSetColumnIndex(column)
+                    text("Hello $row,$column")
                 }
             }
         }

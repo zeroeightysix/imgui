@@ -1530,10 +1530,10 @@ internal interface table {
 
         // FIXME-TABLE: Logic to avoid saving default widths?
         settings.saveFlags = Tf.Resizable.i
-        var n = 0
-        var column = table.columns[n]!!
-        var columnSettings = settings.columnSettings[n]
-        while (n < table.columnsCount) {
+        for (n in 0 until table.columnsCount) {
+            val column = table.columns[n]!!
+            val columnSettings = settings.columnSettings[n]
+
             //column_settings->WidthOrWeight = column->WidthRequested; // FIXME-WIP
             columnSettings.index = n
             columnSettings.displayOrder = column.displayOrder
@@ -1549,10 +1549,6 @@ internal interface table {
                 settings.saveFlags = settings.saveFlags or Tf.Sortable
             if (columnSettings.visible != column.flags hasnt Tcf.DefaultHide)
                 settings.saveFlags = settings.saveFlags or Tf.Hideable
-
-            n++
-            column = table.columns[n]!!
-            columnSettings = settings.columnSettings[n]
         }
         settings.saveFlags = settings.saveFlags and table.flags
 

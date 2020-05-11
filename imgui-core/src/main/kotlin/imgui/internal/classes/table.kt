@@ -885,12 +885,12 @@ class TableSettings(columnsCount: Int) {
     var columnsCount: Int
         get() = (int shr 24).b.i
         set(value) {
-            int = (int and 0x00ff_ffff) and (value shl 24)
+            int = (int and 0x00ff_ffff) or (value shl 24)
         }
     var columnsCountMax: Int
         get() = int.b.i
         set(value) {
-            int = (int and 0xff00_ffff.i) and ((value and 0xff) shl 16)
+            int = (int and 0xffff_ff00.i) or (value and 0xff)
         }
 
     init {
