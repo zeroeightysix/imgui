@@ -1,18 +1,15 @@
 package imgui.internal
 
-import glm_.asHexString
 import glm_.vec2.Vec2
 import glm_.vec4.Vec4
 import imgui.ImGui.io
 import imgui.TextureID
 import imgui.classes.DrawList
-import imgui.logger
 import imgui.resize
 import kool.*
 import kool.lib.indices
 import java.nio.ByteBuffer
 import java.util.Stack
-import java.util.logging.Level
 
 /** ImDrawCallback: Draw callbacks for advanced uses [configurable type: override in imconfig.h]
  *  NB: You most likely do NOT need to use draw callbacks just to create your own widget or customized UI rendering,
@@ -91,7 +88,8 @@ typealias DrawIdx = Int
 class DrawVert(
         var pos: Vec2 = Vec2(),
         var uv: Vec2 = Vec2(),
-        var col: Int = 0) {
+        var col: Int = 0
+) {
 
     companion object {
         val size = 2 * Vec2.size + Int.BYTES
@@ -115,14 +113,18 @@ class DrawChannel {
     var _idxBuffer = IntBuffer(0)
 
     fun memset0() {
-        _cmdBuffer.clear()
-        _idxBuffer.free()
+        free()
         _idxBuffer = IntBuffer(0)
     }
 
     fun resize0() {
         _cmdBuffer.clear()
         _idxBuffer.lim = 0
+    }
+
+    fun free() {
+        _cmdBuffer.clear()
+        _idxBuffer.free()
     }
 }
 
@@ -156,10 +158,8 @@ class DrawListSplitter {
         _channels.forEach {
             //            if (i == _current)
 //                memset(&_Channels[i], 0, sizeof(_Channels[i]));  // Current channel is a copy of CmdBuffer/IdxBuffer, don't destruct again
-            it._cmdBuffer.clear()
-            it._idxBuffer.free()
-            if (!destroy)
-                it._idxBuffer = IntBuffer(0).also { i -> logger.log(Level.INFO, "idxBuffer adr = ${i.adr.asHexString}") }
+            if (destroy) it.free()
+            else it.memset0()
         }
         _current = 0
         _count = 1

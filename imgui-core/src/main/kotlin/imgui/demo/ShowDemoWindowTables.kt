@@ -17,9 +17,11 @@ import imgui.ImGui.pushStyleVar
 import imgui.ImGui.sameLine
 import imgui.ImGui.separator
 import imgui.ImGui.setNextItemOpen
+import imgui.ImGui.tableAutoHeaders
 import imgui.ImGui.tableNextCell
 import imgui.ImGui.tableNextRow
 import imgui.ImGui.tableSetColumnIndex
+import imgui.ImGui.tableSetupColumn
 import imgui.ImGui.text
 import imgui.ImGui.unindent
 import imgui.StyleVar
@@ -27,6 +29,7 @@ import imgui.api.demoDebugInformations.Companion.helpMarker
 import imgui.dsl.table
 import imgui.dsl.treeNode
 import imgui.or
+import imgui.TableColumnFlag as Tcf
 import imgui.TableFlag as Tf
 
 object ShowDemoWindowTables {
@@ -81,77 +84,15 @@ object ShowDemoWindowTables {
             setNextItemOpen(openAction != 0)
         resizableStretch()
 
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        resizableFixed()
+
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        resizableMixed()
+
 /*
-        if (openAction != -1)
-            ImGui::SetNextItemOpen(open_action != 0)
-        if (ImGui::TreeNode("Resizable, fixed")) {
-            // Here we use ImGuiTableFlags_SizingPolicyFixedX (even though _ScrollX is not set)
-            // So columns will adopt the "Fixed" policy and will maintain a fixed weight regardless of the whole available width.
-            // If there is not enough available width to fit all columns, they will however be resized down.
-            // FIXME-TABLE: Providing a stretch-on-init would make sense especially for tables which don't have saved settings
-            HelpMarker("Using _Resizable + _SizingPolicyFixedX flags.\nFixed-width columns generally makes more sense if you want to use horizontal scrolling.")
-            static ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingPolicyFixedX | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
-            //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollX", (unsigned int*)&flags, ImGuiTableFlags_ScrollX); // FIXME-TABLE: Explain or fix the effect of enable Scroll on outer_size
-            if (ImGui::BeginTable("##table1", 3, flags)) {
-                for (int row = 0; row < 5; row++)
-                {
-                    ImGui::TableNextRow()
-                    for (int column = 0; column < 3; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        ImGui::Text("Hello %d,%d", row, column)
-                    }
-                }
-                ImGui::EndTable()
-            }
-            ImGui::TreePop()
-        }
-
-        if (openAction != -1)
-            ImGui::SetNextItemOpen(open_action != 0)
-        if (ImGui::TreeNode("Resizable, mixed")) {
-            HelpMarker("Using columns flag to alter resizing policy on a per-column basis.")
-            static ImGuiTableFlags flags = ImGuiTableFlags_SizingPolicyFixedX | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable
-            //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollX", (unsigned int*)&flags, ImGuiTableFlags_ScrollX); // FIXME-TABLE: Explain or fix the effect of enable Scroll on outer_size
-
-            if (ImGui::BeginTable("##table1", 3, flags, ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 6))) {
-                ImGui::TableSetupColumn("AAA", ImGuiTableColumnFlags_WidthFixed)// | ImGuiTableColumnFlags_NoResize);
-                ImGui::TableSetupColumn("BBB", ImGuiTableColumnFlags_WidthFixed)
-                ImGui::TableSetupColumn("CCC", ImGuiTableColumnFlags_WidthStretch)
-                ImGui::TableAutoHeaders()
-                for (int row = 0; row < 5; row++)
-                {
-                    ImGui::TableNextRow()
-                    for (int column = 0; column < 3; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        ImGui::Text("%s %d,%d", (column == 2) ? "Stretch" : "Fixed", row, column)
-                    }
-                }
-                ImGui::EndTable()
-            }
-            if (ImGui::BeginTable("##table2", 6, flags, ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 6))) {
-                ImGui::TableSetupColumn("AAA", ImGuiTableColumnFlags_WidthFixed)
-                ImGui::TableSetupColumn("BBB", ImGuiTableColumnFlags_WidthFixed)
-                ImGui::TableSetupColumn("CCC", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultHide)
-                ImGui::TableSetupColumn("DDD", ImGuiTableColumnFlags_WidthStretch)
-                ImGui::TableSetupColumn("EEE", ImGuiTableColumnFlags_WidthStretch)
-                ImGui::TableSetupColumn("FFF", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultHide)
-                ImGui::TableAutoHeaders()
-                for (int row = 0; row < 5; row++)
-                {
-                    ImGui::TableNextRow()
-                    for (int column = 0; column < 6; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        ImGui::Text("%s %d,%d", (column >= 3) ? "Stretch" : "Fixed", row, column)
-                    }
-                }
-                ImGui::EndTable()
-            }
-            ImGui::TreePop()
-        }
-
         if (openAction != -1)
             ImGui::SetNextItemOpen(open_action != 0)
         if (ImGui::TreeNode("Reorderable, hideable, with headers")) {
@@ -1044,6 +985,63 @@ object ShowDemoWindowTables {
                 for (column in 0..2) {
                     tableSetColumnIndex(column)
                     text("Hello $row,$column")
+                }
+            }
+        }
+    }
+
+    var flags2 = Tf.Resizable or Tf.SizingPolicyFixedX or Tf.BordersOuter or Tf.BordersV
+    fun resizableFixed() = treeNode("Resizable, fixed") {
+        // Here we use ImGuiTableFlags_SizingPolicyFixedX (even though _ScrollX is not set)
+        // So columns will adopt the "Fixed" policy and will maintain a fixed weight regardless of the whole available width.
+        // If there is not enough available width to fit all columns, they will however be resized down.
+        // FIXME-TABLE: Providing a stretch-on-init would make sense especially for tables which don't have saved settings
+        helpMarker("Using _Resizable + _SizingPolicyFixedX flags.\nFixed-width columns generally makes more sense if you want to use horizontal scrolling.")
+
+        //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollX", (unsigned int*)&flags, ImGuiTableFlags_ScrollX); // FIXME-TABLE: Explain or fix the effect of enable Scroll on outer_size
+        table("##table1", 3, flags2) {
+            for (row in 0..4) {
+                tableNextRow()
+                for (column in 0..2) {
+                    tableSetColumnIndex(column)
+                    text("Hello $row,$column")
+                }
+            }
+        }
+    }
+
+    var flags3 = Tf.SizingPolicyFixedX or Tf.RowBg or Tf.Borders or Tf.Resizable or Tf.Reorderable or Tf.Hideable
+    fun resizableMixed() = treeNode("Resizable, mixed") {
+        helpMarker("Using columns flag to alter resizing policy on a per-column basis.")
+        //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollX", (unsigned int*)&flags, ImGuiTableFlags_ScrollX); // FIXME-TABLE: Explain or fix the effect of enable Scroll on outer_size
+
+        if(beginTable("##table1", 3, flags3, Vec2(0f, ImGui.textLineHeightWithSpacing * 6))) {
+            tableSetupColumn("AAA", Tcf.WidthFixed.i)// | ImGuiTableColumnFlags_NoResize);
+            tableSetupColumn("BBB", Tcf.WidthFixed.i)
+            tableSetupColumn("CCC", Tcf.WidthStretch.i)
+            tableAutoHeaders()
+            for (row in 0..4) {
+                tableNextRow()
+                for (column in 0..2) {
+                    tableSetColumnIndex(column)
+                    text("${if (column == 2) "Stretch" else "Fixed"} $row,$column")
+                }
+            }
+            endTable()
+        }
+        table("##table2", 6, flags3, Vec2(0f, ImGui.textLineHeightWithSpacing * 6)) {
+            tableSetupColumn("AAA", Tcf.WidthFixed.i)
+            tableSetupColumn("BBB", Tcf.WidthFixed.i)
+            tableSetupColumn("CCC", Tcf.WidthFixed or Tcf.DefaultHide)
+            tableSetupColumn("DDD", Tcf.WidthStretch.i)
+            tableSetupColumn("EEE", Tcf.WidthStretch.i)
+            tableSetupColumn("FFF", Tcf.WidthStretch or Tcf.DefaultHide)
+            tableAutoHeaders()
+            for (row in 0..4) {
+                tableNextRow()
+                for (column in 0..5) {
+                    tableSetColumnIndex(column)
+                    text("${if (column >= 3) "Stretch" else "Fixed"} $row,$column")
                 }
             }
         }

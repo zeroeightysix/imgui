@@ -568,7 +568,7 @@ internal interface table {
             column.minX = offsetX
             column.maxX = column.minX + column.widthGiven
 
-            //// A one pixel padding on the right side makes clipping more noticeable and contents look less cramped.
+            // A one pixel padding on the right side makes clipping more noticeable and contents look less cramped.
             column.clipRect.put(column.minX, workRect.min.y, column.maxX/* -1f */, Float.MAX_VALUE)
             column.clipRect clipWithFull hostClipRect
 
@@ -972,8 +972,12 @@ internal interface table {
         if (mergeGroupMask != 0) {
             // Use shared temporary storage so the allocation gets amortized
 //            g.drawChannelsTempMergeBuffer.resize(splitter->_Count-1)
-            for (i in g.drawChannelsTempMergeBuffer.size until splitter._count - 1) g.drawChannelsTempMergeBuffer += DrawChannel()
-            for (i in splitter._count - 1 until g.drawChannelsTempMergeBuffer.size) TODO()//g.drawChannelsTempMergeBuffer += DrawChannel()
+            for(i in splitter._count - 1 until g.drawChannelsTempMergeBuffer.size) {
+//                g.drawChannelsTempMergeBuffer.last().free()
+                g.drawChannelsTempMergeBuffer.removeAt(g.drawChannelsTempMergeBuffer.lastIndex)
+            }
+            for (i in g.drawChannelsTempMergeBuffer.size until splitter._count - 1)
+                g.drawChannelsTempMergeBuffer += DrawChannel()
 
             val dstTmp = g.drawChannelsTempMergeBuffer
             var d = 0

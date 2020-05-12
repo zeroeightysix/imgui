@@ -507,7 +507,7 @@ interface tables {
             val name = tableGetColumnName(columnN) ?: ""
 
             // [DEBUG] Test custom user elements
-            if (DEBUG && columnN < 2) {
+            if (false && DEBUG && columnN < 2) {
                 pushID(columnN)
                 pushStyleVar(StyleVar.FramePadding, Vec2(0))
                 checkbox("##", b, columnN)
@@ -543,7 +543,7 @@ interface tables {
             // Because we don't perform any rendering here we just overwrite window->ClipRect used by logic.
             window.clipRect put table.innerClipRect
 
-            val backupCursorMaxPos = window.dc.cursorMaxPos
+            val backupCursorMaxPos = Vec2(window.dc.cursorMaxPos)
             window.dc.cursorPos = Vec2(unusedX1, table.rowPosY1)
             val size = Vec2(table.workRect.max.x - window.dc.cursorPos.x, table.rowPosY2 - table.rowPosY1)
             if (size.x > 0f && size.y > 0f) { // TODO glm
@@ -591,7 +591,7 @@ interface tables {
         val label = label_.toByteArray()
         val labelEnd = findRenderedTextEnd(label)
         val labelSize = calcTextSize(label, 0, labelEnd, true)
-        val labelPos = window.dc.cursorPos
+        val labelPos = Vec2(window.dc.cursorPos)
 
         // If we already got a row height, there's use that.
         val cellR = tableGetCellRect()
