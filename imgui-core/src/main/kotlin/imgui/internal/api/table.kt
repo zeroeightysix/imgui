@@ -684,9 +684,9 @@ internal interface table {
             //GetForegroundDrawList()->AddRect(hit_rect.Min, hit_rect.Max, IM_COL32(255, 0, 0, 100));
             keepAliveID(columnId)
 
-            var hovered = false
-            var held = false
             val (pressed, hovered_, held_) = buttonBehavior(hitRect, columnId, ButtonFlag.FlattenChildren or ButtonFlag.AllowItemOverlap or ButtonFlag.PressedOnClick or ButtonFlag.PressedOnDoubleClick)
+            var hovered = hovered_
+            var held = held_
             if (pressed && isMouseDoubleClicked(MouseButton.Left) && column.flags hasnt Tcf.WidthStretch) {
                 // FIXME-TABLE: Double-clicking on column edge could auto-fit weighted column?
                 tableSetColumnAutofit(table, columnN)

@@ -971,7 +971,6 @@ object ShowDemoWindowTables {
     // By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
     // Each columns maintain a sizing weight, and they will occupy all available width.
     var flags1 = Tf.Resizable or Tf.BordersOuter or Tf.BordersV
-
     fun resizableStretch() = treeNode("Resizable, stretch") {
         // By default, if we don't enable ScrollX the sizing policy for each columns is "Stretch"
         // Each columns maintain a sizing weight, and they will occupy all available width.
