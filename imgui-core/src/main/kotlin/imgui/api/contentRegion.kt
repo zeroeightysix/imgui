@@ -12,10 +12,10 @@ interface contentRegion {
      *  FIXME: This is in window space (not screen space!). We should try to obsolete all those functions.
      *  ~GetContentRegionMax    */
     val contentRegionMax: Vec2
-        /** ~GetContentRegionMax */
         get() = g.currentWindow!!.run {
             val mx = contentRegionRect.max - pos
-            dc.currentColumns?.let { mx.x = workRect.max.x - pos.x }
+            if (dc.currentColumns != null || g.currentTable != null)
+                mx.x = workRect.max.x - pos.x
             mx
         }
 

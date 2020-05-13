@@ -74,15 +74,7 @@ interface windows {
 
         // Find or create
         var windowJustCreated = false
-        val window = findWindowByName(name) ?: run {
-            // Any condition flag will do since we are creating a new window here.
-            val sizeOnFirstUse = when {
-                g.nextWindowData.flags has NextWindowDataFlag.HasSize -> Vec2(g.nextWindowData.sizeVal)
-                else -> Vec2()
-            }
-            windowJustCreated = true
-            createNewWindow(name, sizeOnFirstUse, flags)
-        }
+        val window = findWindowByName(name) ?: createNewWindow(name, flags).also { windowJustCreated = true }
 
         // Automatically disable manual moving/resizing when NoInputs is set
         if ((flags and Wf.NoInputs) == Wf.NoInputs.i)
@@ -208,7 +200,7 @@ interface windows {
             // Update stored window name when it changes (which can _only_ happen with the "###" operator, so the ID would stay unchanged).
             // The title bar always display the 'name' parameter, so we only update the string storage if it needs to be visible to the end-user elsewhere.
             var windowTitleVisibleElsewhere = false
-            if (g.navWindowingList.isNotEmpty() && window.flags hasnt Wf.NoNavFocus)   // Window titles visible when using CTRL+TAB
+            if (g.navWindowingListWindow.isNotEmpty() && window.flags hasnt Wf.NoNavFocus)   // Window titles visible when using CTRL+TAB
                 windowTitleVisibleElsewhere = true
             if (windowTitleVisibleElsewhere && !windowJustCreated && name != window.name) {
 //                val buf_len = (size_t)window->NameBufLen

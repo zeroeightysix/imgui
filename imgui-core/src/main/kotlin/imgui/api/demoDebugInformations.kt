@@ -1,7 +1,9 @@
 package imgui.api
 
+import glm_.L
 import glm_.asHexString
 import glm_.f
+import glm_.i
 import glm_.vec2.Vec2
 import glm_.vec4.Vec4
 import imgui.*
@@ -12,6 +14,7 @@ import imgui.ImGui.beginTooltip
 import imgui.ImGui.bulletText
 import imgui.ImGui.button
 import imgui.ImGui.checkbox
+import imgui.ImGui.clearIniSettings
 import imgui.ImGui.combo
 import imgui.ImGui.debugStartItemPicker
 import imgui.ImGui.end
@@ -24,6 +27,8 @@ import imgui.ImGui.foregroundDrawList
 import imgui.ImGui.frameCount
 import imgui.ImGui.getForegroundDrawList
 import imgui.ImGui.getID
+import imgui.ImGui.indent
+import imgui.ImGui.inputTextMultiline
 import imgui.ImGui.io
 import imgui.ImGui.isItemHovered
 import imgui.ImGui.logFinish
@@ -34,6 +39,7 @@ import imgui.ImGui.popTextWrapPos
 import imgui.ImGui.pushID
 import imgui.ImGui.pushTextWrapPos
 import imgui.ImGui.sameLine
+import imgui.ImGui.saveIniSettingsToDisk
 import imgui.ImGui.selectable
 import imgui.ImGui.separator
 import imgui.ImGui.setNextItemWidth
@@ -42,13 +48,17 @@ import imgui.ImGui.style
 import imgui.ImGui.styleColorsClassic
 import imgui.ImGui.styleColorsDark
 import imgui.ImGui.styleColorsLight
+import imgui.ImGui.tableFindSettings
+import imgui.ImGui.tableGetColumnName
 import imgui.ImGui.text
 import imgui.ImGui.textColored
 import imgui.ImGui.textDisabled
 import imgui.ImGui.textEx
 import imgui.ImGui.textLineHeightWithSpacing
+import imgui.ImGui.textUnformatted
 import imgui.ImGui.treeNode
 import imgui.ImGui.treePop
+import imgui.ImGui.unindent
 import imgui.ImGui.windowDrawList
 import imgui.classes.DrawList
 import imgui.classes.ListClipper
@@ -59,10 +69,7 @@ import imgui.dsl.indent
 import imgui.dsl.treeNode
 import imgui.dsl.withId
 import imgui.internal.*
-import imgui.internal.classes.Columns
-import imgui.internal.classes.Rect
-import imgui.internal.classes.TabBar
-import imgui.internal.classes.Window
+import imgui.internal.classes.*
 import kool.BYTES
 import kool.lim
 import kool.rem
@@ -235,6 +242,44 @@ interface demoDebugInformations {
                         }
                     }
                 }
+
+            checkbox("Show tables rectangles", ::showTablesRects)
+            sameLine()
+            setNextItemWidth(ImGui.fontSize * 12)
+            _i = showTablesRectType.ordinal
+            showTablesRects = showTablesRects || combo("##show_table_rects_type", ::_i, TRT.names, TRT.count)
+            if (showTablesRects)
+                g.navWindow?.let { nav ->
+                    for (tableN in 0 until g.tables.size) {
+                        val table = g.tables[tableN]!!
+                        if (table.lastFrameActive < g.frameCount - 1 || table.outerWindow !== nav)
+                            continue
+
+                        bulletText("Table 0x%08X (${table.columnsCount} columns, in '${table.outerWindow!!.name}')".format(table.id))
+                        if (ImGui.isItemHovered())
+                            ImGui.foregroundDrawList.addRect(table.outerRect.min - 1, table.outerRect.max + 1, COL32(255, 255, 0, 255), 0f, DrawCornerFlag.All.i, 2f)
+                        indent()
+                        for (rectN in TRT.values()) {
+                            if (rectN >= TRT.ColumnsRect) {
+                                if (rectN != TRT.ColumnsRect && rectN != TRT.ColumnsClipRect)
+                                    continue
+                                for (columnN in 0 until table.columnsCount) {
+                                    val r = Funcs.getTableRect(table, rectN, columnN)
+                                    text("(%6.1f,%6.1f) (%6.1f,%6.1f) Size (%6.1f,%6.1f) Col $columnN ${rectN.name}".format(r.min.x, r.min.y, r.max.x, r.max.y, r.width, r.height))
+                                    if (ImGui.isItemHovered())
+                                        ImGui.foregroundDrawList.addRect(r.min - 1, r.max + 1, COL32(255, 255, 0, 255), 0f, DrawCornerFlag.All.i, 2f)
+                                }
+                            } else {
+                                val r = Funcs.getTableRect(table, rectN, -1)
+                                text("(%6.1f,%6.1f) (%6.1f,%6.1f) Size (%6.1f,%6.1f) ${rectN.name}".format(r.min.x, r.min.y, r.max.x, r.max.y, r.width, r.height))
+                                if (ImGui.isItemHovered())
+                                    ImGui.foregroundDrawList.addRect(r.min - 1, r.max + 1, COL32(255, 255, 0, 255), 0f, DrawCornerFlag.All.i, 2f)
+                            }
+                        }
+                        unindent()
+                    }
+                }
+
             checkbox("Show mesh when hovering ImDrawCmd", ::showDrawcmdMesh)
             checkbox("Show bounding boxes when hovering ImDrawCmd", ::showDrawcmdAabb)
         }
@@ -265,22 +310,61 @@ interface demoDebugInformations {
             treePop()
         }
 
-//        #ifdef IMGUI_HAS_TABLE
-//                if (ImGui::TreeNode("Tables", "Tables (%d)", g.Tables.GetSize()))
-//                {
-//                    for (int n = 0; n < g.Tables.GetSize(); n++)
-//                    Funcs::NodeTable(g.Tables.GetByIndex(n));
-//                    ImGui::TreePop();
-//                }
-//        #endif // #define IMGUI_HAS_TABLE
-//
+        // Details for Tables
+        if (treeNode("Tables", "Tables (${g.tables.size})")) {
+            for (n in 0 until g.tables.size)
+                Funcs.nodeTable(g.tables[n]!!)
+            treePop()
+        }
+
         // Details for Docking
-//        #ifdef IMGUI_HAS_DOCK
-//                if (ImGui::TreeNode("Docking"))
-//                {
-//                    ImGui::TreePop();
-//                }
+        if (false) // IMGUI_HAS_DOCK
+            if (treeNode("Docking")) {
+                treePop()
+            }
 //        #endif // #define IMGUI_HAS_DOCK
+
+        // Settings
+        if (treeNode("Settings")) {
+            if (smallButton("Clear"))
+                clearIniSettings()
+            sameLine()
+            if (smallButton("Save to disk"))
+                saveIniSettingsToDisk(io.iniFilename)
+            sameLine()
+            val ini = io.iniFilename
+            if (ini != null)
+                text("\"$ini\"")
+            else
+                textUnformatted("<NULL>")
+            text("SettingsDirtyTimer %.2f".format(g.settingsDirtyTimer))
+            if (treeNode("SettingsHandlers", "Settings handlers: (${g.settingsHandlers.size})")) {
+                for (n in 0 until g.settingsHandlers.size)
+                    textUnformatted(g.settingsHandlers[n].typeName)
+                treePop()
+            }
+            if (treeNode("SettingsWindows", "Settings packed data: Windows: ${g.settingsWindows.size} bytes")) {
+                for (settings in g.settingsWindows)
+                    Funcs.nodeWindowSettings(settings)
+                treePop()
+            }
+
+            if (treeNode("SettingsTables", "Settings packed data: Tables: ${g.settingsTables.size} bytes")) {
+                for (settings in g.settingsTables)
+                    Funcs.nodeTableSettings(settings)
+                treePop()
+            }
+
+//            #ifdef IMGUI_HAS_DOCK
+//            #endif
+
+            if (treeNode("SettingsIniData", "Settings unpacked data (.ini): ${g.settingsIniData.length} bytes")) {
+                val buf = g.settingsIniData
+                inputTextMultiline("##Ini", buf.toString(), Vec2(-Float.MIN_VALUE, 0f), InputTextFlag.ReadOnly.i)
+                treePop()
+            }
+            treePop()
+        }
 
         // Misc Details
         if (treeNode("Internal state")) {
@@ -321,16 +405,26 @@ interface demoDebugInformations {
                 }
             }
 
-//        #ifdef IMGUI_HAS_TABLE
-//        // Overlay: Display Tables Rectangles
-//        if (show_tables_rects)
-//        {
-//            for (int table_n = 0; table_n < g.Tables.GetSize(); table_n++)
-//            {
-//                ImGuiTable* table = g.Tables.GetByIndex(table_n);
-//            }
-//        }
-//        #endif // #define IMGUI_HAS_TABLE
+        // Overlay: Display Tables Rectangles
+        if (showTablesRects) {
+            for (tableN in 0 until g.tables.size) {
+                val table = g.tables[tableN]!!
+                if (table.lastFrameActive < g.frameCount - 1)
+                continue
+                val drawList = getForegroundDrawList(table.outerWindow)
+                if (showTablesRectType >= TRT.ColumnsRect)
+                    for (columnN in 0 until table.columnsCount) {
+                        val r = Funcs.getTableRect(table, showTablesRectType, columnN)
+                        val col = if(table.hoveredColumnBody == columnN) COL32(255, 255, 128, 255) else COL32(255, 0, 128, 255)
+                        val thickness = if(table.hoveredColumnBody == columnN) 3f else 1f
+                        drawList.addRect(r.min, r.max, col, 0f, DrawCornerFlag.All.i, thickness)
+                    }
+                else {
+                    val r = Funcs.getTableRect(table, showTablesRectType, -1)
+                    drawList.addRect(r.min, r.max, COL32(255, 0, 128, 255))
+                }
+            }
+        }
 //
 //        #ifdef IMGUI_HAS_DOCK
 //        // Overlay: Display Docking info
@@ -434,7 +528,8 @@ interface demoDebugInformations {
             OuterRect, WorkRect, HostClipRect, InnerClipRect, BackgroundClipRect, ColumnsRect, ColumnsClipRect, ColumnsContentHeadersUsed, ColumnsContentHeadersDesired, ColumnsContentRowsFrozen, ColumnsContentRowsUnfrozen;
 
             companion object {
-                val names = WRT.values().map { it.name }
+                val names = values().map { it.name }
+                val count = values().size
             }
         }
 
@@ -461,6 +556,20 @@ interface demoDebugInformations {
         // - NodeStorage()
         object Funcs {
 
+            fun getTableRect(table: Table, rectType: TRT, n: Int): Rect = when (rectType) {
+                TRT.OuterRect -> Rect(table.outerRect)
+                TRT.WorkRect -> Rect(table.workRect)
+                TRT.HostClipRect -> Rect(table.hostClipRect)
+                TRT.InnerClipRect -> Rect(table.innerClipRect)
+                TRT.BackgroundClipRect -> Rect(table.backgroundClipRect)
+                TRT.ColumnsRect -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.maxX, table.innerClipRect.min.y + table.lastOuterHeight) }
+                TRT.ColumnsClipRect -> Rect(table.columns[n]!!.clipRect)
+                TRT.ColumnsContentHeadersUsed -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthHeadersUsed, table.innerClipRect.min.y + table.lastFirstRowHeight) }    // Note: y1/y2 not always accurate
+                TRT.ColumnsContentHeadersDesired -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthHeadersDesired, table.innerClipRect.min.y + table.lastFirstRowHeight) } // "
+                TRT.ColumnsContentRowsFrozen -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthRowsFrozen, table.innerClipRect.min.y + table.lastFirstRowHeight) }     // "
+                TRT.ColumnsContentRowsUnfrozen -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y + table.lastFirstRowHeight, c.minX + c.contentWidthRowsUnfrozen, table.innerClipRect.max.y) }   // "
+            }
+
             fun getWindowRect(window: Window, rectType: WRT): Rect = when (rectType) {
                 WRT.OuterRect -> window.rect()
                 WRT.OuterRectClipped -> window.outerRectClipped
@@ -474,8 +583,10 @@ interface demoDebugInformations {
                 WRT.ContentRegionRect -> window.contentRegionRect
             }
 
-            fun nodeDrawCmdShowMeshAndBoundingBox(window: Window?, drawList: DrawList, drawCmd: DrawCmd, elemOffset: Int,
-                                                  showMesh: Boolean, showAabb: Boolean) {
+            fun nodeDrawCmdShowMeshAndBoundingBox(
+                    window: Window?, drawList: DrawList, drawCmd: DrawCmd, elemOffset: Int,
+                    showMesh: Boolean, showAabb: Boolean
+            ) {
                 assert(showMesh || showAabb)
                 val fgDrawList = getForegroundDrawList(window) // Render additional visuals into the top-most draw list
                 val idxBuffer = drawList.idxBuffer.takeIf { it.rem > 0 }
@@ -675,6 +786,9 @@ interface demoDebugInformations {
                 treePop()
             }
 
+            fun nodeWindowSettings(settings: WindowSettings) =
+                    text("0x%08X \"${settings.name}\" Pos (${settings.pos.x.i},${settings.pos.y.i}) Size (${settings.size.x.i},${settings.size.y.i}) Collapsed=${settings.collapsed.i}".format(settings.id))
+
             fun nodeTabBar(tabBar: TabBar) {
                 // Standalone tab bars (not associated to docking/windows functionality) currently hold no discernible strings.
                 val string = "TabBar (${tabBar.tabs.size} tabs)${if (tabBar.prevFrameVisible < frameCount - 2) " *Inactive*" else ""}"
@@ -694,6 +808,45 @@ interface demoDebugInformations {
                             popID()
                         }
                     }
+                    treePop()
+                }
+            }
+
+            fun nodeTableSettings(settings: TableSettings) {
+                if (!treeNode(settings.id.L, "Settings 0x%08X (${settings.columnsCount} columns)".format(settings.id)))
+                    return
+                bulletText("SaveFlags: 0x%08X".format(settings.saveFlags))
+                bulletText("ColumnsCount: ${settings.columnsCount} (max ${settings.columnsCountMax})")
+                for (n in 0 until settings.columnsCount) {
+                    val columnSettings = settings.columnSettings[n]
+                    val sortDir = if (columnSettings.sortOrder != -1) columnSettings.sortDirection else SortDirection.None
+                    val ord = if (sortDir == SortDirection.Ascending) "Asc" else if (sortDir == SortDirection.Descending) "Des" else "---"
+                    bulletText("Column $n Order ${columnSettings.displayOrder} SortOrder ${columnSettings.sortOrder} $ord " +
+                            "Visible ${columnSettings.visible} UserID 0x%08X WidthOrWeight %.3f".format(columnSettings.userID, columnSettings.widthOrWeight))
+                }
+                treePop()
+            }
+
+            fun nodeTable(table: Table) {
+                val s = if (table.lastFrameActive < ImGui.frameCount - 2) " *Inactive*" else ""
+                val string = "Table 0x%08X (${table.columnsCount} columns, in '${table.outerWindow!!.name}')$s".format(table.id)
+                val open = treeNode(table, string)
+                if (ImGui.isItemHovered())
+                    ImGui.foregroundDrawList.addRect(table.outerRect.min, table.outerRect.max, COL32(255, 255, 0, 255))
+                if (open) {
+                    for (n in 0 until table.columnsCount) {
+                        val column = table.columns[n]!!
+                        val name = tableGetColumnName(table, n)
+                        bulletText("Column $n order ${column.displayOrder} name '$name': +%.1f to +%.1f\n".format(column.minX - table.workRect.min.x, column.maxX - table.workRect.min.x) +
+                                "Active: ${column.isActive.i}, Clipped: ${column.isClipped.i}, DrawChannels: ${column.drawChannelRowsBeforeFreeze},${column.drawChannelRowsAfterFreeze}\n" +
+                                "WidthGiven/Requested: %.1f/%.1f, Weight: %.2f\n".format(column.widthGiven, column.widthRequested, column.resizeWeight) +
+                                "ContentWidth: RowsFrozen ${column.contentWidthRowsFrozen}, RowsUnfrozen ${column.contentWidthRowsUnfrozen}, HeadersUsed/Desired ${column.contentWidthHeadersUsed}/${column.contentWidthHeadersDesired}\n" +
+                                "SortOrder: ${column.sortOrder}, SortDir: ${if (column.sortDirection == SortDirection.Ascending) "Ascending" else if (column.sortDirection == SortDirection.Descending) "Descending" else "None"}\n" +
+                                "UserID: 0x%08X, Flags: 0x%04X: ".format(column.userID, column.flags) +
+                                "${if (column.flags has TableColumnFlag.WidthFixed) "WidthFixed " else ""}${if (column.flags has TableColumnFlag.WidthStretch) "WidthStretch " else ""}" +
+                                "${if (column.flags has TableColumnFlag.WidthAlwaysAutoResize) "WidthAlwaysAutoResize " else ""}${if (column.flags has TableColumnFlag.NoResize) "NoResize " else ""}..")
+                    }
+                    tableFindSettings(table)?.let(::nodeTableSettings)
                     treePop()
                 }
             }

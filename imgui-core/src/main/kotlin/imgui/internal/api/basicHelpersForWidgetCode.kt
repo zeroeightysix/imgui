@@ -282,7 +282,8 @@ internal interface basicHelpersForWidgetCode {
     val contentRegionMaxAbs: Vec2
         get() = g.currentWindow!!.run {
             val mx = Vec2(contentRegionRect.max)
-            dc.currentColumns?.let { mx.x = workRect.max.x }
+            if (dc.currentColumns != null || g.currentTable != null)
+                mx.x = workRect.max.x
             mx
         }
 

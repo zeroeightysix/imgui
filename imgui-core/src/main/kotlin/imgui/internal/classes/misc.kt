@@ -347,6 +347,12 @@ class PopupData(
         var openMousePos: Vec2 = Vec2()
 )
 
+/** Clear all settings data */
+typealias ClearAllFn = (ctx: Context, handler: SettingsHandler) -> Unit
+
+/** Read: Called after reading (in registration order) */
+typealias ApplyAllFn = (ctx: Context, handler: SettingsHandler) -> Unit
+
 /** Read: Called when entering into a new ini entry e.g. "[Window][Name]" */
 typealias ReadOpenFn = (ctx: Context, handler: SettingsHandler, name: String) -> Any
 
@@ -364,9 +370,11 @@ class SettingsHandler {
     /** == ImHashStr(TypeName) */
     var typeHash: ID = 0
 
-    lateinit var readOpenFn: ReadOpenFn
-    lateinit var readLineFn: ReadLineFn
-    lateinit var writeAllFn: WriteAllFn
+    var clearAllFn: ClearAllFn? = null
+    var applyAllFn: ApplyAllFn? = null
+    var readOpenFn: ReadOpenFn? = null
+    var readLineFn: ReadLineFn? = null
+    var writeAllFn: WriteAllFn? = null
     var userData: Any? = null
 }
 
@@ -414,6 +422,8 @@ class WindowSettings(val name: String = "") {
     var pos = Vec2()
     var size = Vec2()
     var collapsed = false
+    /** Set when loaded from .ini data (to enable merging/loading .ini data into an already running context) */
+    var wantApply = false
 }
 
 //-----------------------------------------------------------------------------

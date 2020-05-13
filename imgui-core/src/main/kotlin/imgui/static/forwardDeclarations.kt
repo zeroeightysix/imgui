@@ -8,6 +8,7 @@ import glm_.i
 import glm_.vec2.Vec2
 import imgui.*
 import imgui.ImGui.createNewWindowSettings
+import imgui.ImGui.findWindowByID
 import imgui.ImGui.findWindowSettings
 import imgui.ImGui.io
 import imgui.ImGui.style
@@ -78,7 +79,16 @@ fun findHoveredWindow() {
     g.hoveredRootWindow = g.hoveredWindow?.rootWindow
 }
 
-fun createNewWindow(name: String, size: Vec2, flags: Int) = Window(g, name).apply {
+fun applyWindowSettings(window: Window, settings: WindowSettings) {
+    window.pos = floor(settings.pos)
+    if (settings.size.x > 0 && settings.size.y > 0) { // TODO glm
+        window.size put floor(settings.size)
+        window.sizeFull put window.size
+    }
+    window.collapsed = settings.collapsed
+}
+
+fun createNewWindow(name: String, flags: Int) = Window(g, name).apply {
 
     //IMGUI_DEBUG_LOG("CreateNewWindow '%s', flags = 0x%08X\n", name, flags);
 
@@ -95,14 +105,9 @@ fun createNewWindow(name: String, size: Vec2, flags: Int) = Window(g, name).appl
             //  Retrieve settings from .ini file
             settingsOffset = g.settingsWindows.indexOf(settings)
             setConditionAllowFlags(Cond.FirstUseEver.i, false)
-            pos put settings.pos
-            collapsed = settings.collapsed
-            if (settings.size allGreaterThan 0f)
-                size put settings.size
+            applyWindowSettings(this, settings)
         }
     }
-    sizeFull = floor(size)
-    this.size put sizeFull
     dc.cursorMaxPos put pos // So first call to CalcContentSize() doesn't return crazy values
     dc.cursorStartPos put pos
 
@@ -133,8 +138,27 @@ val viewportRect: Rect
 // Settings
 //-----------------------------------------------------------------------------
 
-fun windowSettingsHandler_ReadOpen(ctx: Context, settingsHandler: SettingsHandler, name: String): WindowSettings =
-        findWindowSettings(hash(name)) ?: createNewWindowSettings(name)
+fun windowSettingsHandler_ClearAll(ctx: Context, settingsHandler: SettingsHandler) {
+    g.windows.forEach { it.settingsOffset = -1 }
+    g.settingsWindows.clear()
+}
+
+/** Apply to existing windows (if any) */
+fun windowSettingsHandler_ApplyAll(ctx: Context, settingsHandler: SettingsHandler) {
+    for (settings in g.settingsWindows)
+        if (settings.wantApply) {
+            findWindowByID(settings.id)?.let {
+                applyWindowSettings(it, settings)
+            }
+            settings.wantApply = false
+        }
+}
+
+fun windowSettingsHandler_ReadOpen(ctx: Context, settingsHandler: SettingsHandler, name: String): WindowSettings {
+    val settings = findWindowSettings(hash(name)) ?: createNewWindowSettings(name)
+    settings.wantApply = true
+    return settings
+}
 
 fun windowSettingsHandler_ReadLine(ctx: Context, settingsHandler: SettingsHandler, entry: Any, line: String) {
     val settings = entry as WindowSettings
@@ -168,7 +192,7 @@ fun windowSettingsHandler_WriteAll(ctx: Context, handler: SettingsHandler, buf: 
 
     // Write to text buffer
     for (setting in g.settingsWindows)
-        // all numeric fields to ints to have full c++ compatibility
+    // all numeric fields to ints to have full c++ compatibility
         buf += """|[${handler.typeName}][${setting.name}]
                   |Pos=${setting.pos.x.i},${setting.pos.y.i}
                   |Size=${setting.size.x.i},${setting.size.y.i}

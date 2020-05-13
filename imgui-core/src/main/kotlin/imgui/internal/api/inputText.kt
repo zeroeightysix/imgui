@@ -864,8 +864,8 @@ internal interface inputText {
 
     /** Create text input in place of another active widget (e.g. used when doing a CTRL+Click on drag/slider widgets)
      *  FIXME: Facilitate using this in variety of other situations. */
-    fun tempInputScalar(bb: Rect, id: ID, label: String, dataType: DataType,
-                        pData: KMutableProperty0<*>, format_: String): Boolean {
+    fun tempInputScalar(bb: Rect, id: ID, label: String, dataType: DataType, pData: KMutableProperty0<*>, format_: String,
+                        pClampMin: KMutableProperty0<*>? = null, pClampMax: KMutableProperty0<*>? = null): Boolean {
 
         // On the first frame, g.TempInputTextId == 0, then on subsequent frames it becomes == id.
         // We clear ActiveID on the first frame to allow the InputText() taking it back.

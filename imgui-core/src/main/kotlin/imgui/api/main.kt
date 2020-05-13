@@ -13,13 +13,12 @@ import imgui.ImGui.closePopupsOverWindow
 import imgui.ImGui.defaultFont
 import imgui.ImGui.end
 import imgui.ImGui.focusTopMostWindowUnderOne
-import imgui.ImGui.io
 import imgui.ImGui.isMouseDown
 import imgui.ImGui.keepAliveID
 import imgui.ImGui.mergedKeyModFlags
 import imgui.ImGui.setCurrentFont
 import imgui.ImGui.setNextWindowSize
-import imgui.ImGui.style
+import imgui.ImGui.setTooltip
 import imgui.ImGui.topMostPopupModal
 import imgui.ImGui.updateHoveredWindowAndCaptureFlags
 import imgui.ImGui.updateMouseMovingWindowEndFrame
@@ -29,7 +28,6 @@ import imgui.classes.Style
 import imgui.internal.*
 import imgui.static.*
 import org.lwjgl.system.Platform
-import imgui.ConfigFlag as Cf
 import imgui.WindowFlag as Wf
 import imgui.internal.DrawListFlag as Dlf
 
@@ -258,9 +256,8 @@ interface main {
 
         end()
 
-        // Show CTRL+TAB list window
-        if (g.navWindowingTarget != null)
-            navUpdateWindowingOverlay()
+        // Update navigation: CTRL+Tab, wrap-around requests
+        navEndFrame()
 
         // Drag and Drop: Elapse payload (if delivered, or if source stops being submitted)
         if (g.dragDropActive) {
@@ -272,11 +269,11 @@ interface main {
         }
 
         // Drag and Drop: Fallback for source tooltip. This is not ideal but better than nothing.
-//        if (g.dragDropActive && g.dragDropSourceFrameCount < g.frameCount) {
-//            g.DragDropWithinSource = true
-//            setTooltip("...")
-//            g.dragDropWithinSource = false
-//        }
+        if (g.dragDropActive && g.dragDropSourceFrameCount < g.frameCount && g.dragDropSourceFlags hasnt DragDropFlag.SourceNoPreviewTooltip) {
+            g.dragDropWithinSource = true
+            setTooltip("...")
+            g.dragDropWithinSource = false
+        }
 
         // End frame
         g.withinFrameScope = false
@@ -286,7 +283,7 @@ interface main {
         updateMouseMovingWindowEndFrame()
 
         /*  Sort the window list so that all child windows are after their parent
-            We cannot do that on FocusWindow() because childs may not exist yet         */
+            We cannot do that on FocusWindow() because children may not exist yet         */
         g.windowsTempSortBuffer.clear()
         g.windowsTempSortBuffer.ensureCapacity(g.windows.size)
         g.windows.filter { !it.active || it.flags hasnt Wf._ChildWindow }  // if a child is active its parent will add it
@@ -323,7 +320,7 @@ interface main {
         // Add ImDrawList to render
         val windowsToRenderTopMost = arrayOf(
                 g.navWindowingTarget?.rootWindow?.takeIf { it.flags has Wf.NoBringToFrontOnFocus },
-                g.navWindowingTarget?.let { g.navWindowingList[0] })
+                g.navWindowingTarget?.let { g.navWindowingListWindow[0] })
         g.windows
                 .filter { it.isActiveAndVisible && it.flags hasnt Wf._ChildWindow && it !== windowsToRenderTopMost[0] && it !== windowsToRenderTopMost[1] }
                 .forEach { it.addToDrawData() }

@@ -26,7 +26,8 @@ interface settingsIniUtilities {
     fun loadIniSettingsFromMemory(lines: List<String>) {
 
         assert(g.initialized)
-        assert(!g.settingsLoaded && g.frameCount == 0)
+        //IM_ASSERT(!g.WithinFrameScope && "Cannot be called between NewFrame() and EndFrame()");
+        //IM_ASSERT(g.SettingsLoaded == false && g.FrameCount == 0);
 
         // For user convenience, we allow passing a non zero-terminated string (hence the ini_size parameter).
         // For our convenience and to make the code simpler, we'll also write zero-terminators within the buffer. So let's create a writable copy..
@@ -45,15 +46,17 @@ interface settingsIniUtilities {
                         val name = line.substring(firstCloseBracket + 2, line.lastIndex)
                         entryHandler = findSettingsHandler(type)
                         entryData = entryHandler?.readOpenFn?.invoke(g, entryHandler, name)
-//                        val typeHash = hash(type)
-//                        settings = findWindowSettings(typeHash) ?: createNewWindowSettings(name)
                     }
                 } else if (entryHandler != null && entryData != null)
                 // Let type handler parse the line
-                    entryHandler.readLineFn(g, entryHandler, entryData, line)
+                    entryHandler.readLineFn!!.invoke(g, entryHandler, entryData, line)
             }
         }
         g.settingsLoaded = true
+
+        // Call post-read handlers
+        for (handler in g.settingsHandlers)
+            handler.applyAllFn?.invoke(g, handler)
     }
 
     /** this is automatically called (if io.IniFilename is not empty) a few seconds after any modification that should be reflected in the .ini file (and also by DestroyContext). */
@@ -71,10 +74,9 @@ interface settingsIniUtilities {
     /** Call registered handlers (e.g. SettingsHandlerWindow_WriteAll() + custom handlers) to write their stuff into a text buffer */
     fun saveIniSettingsToMemory(): String {
         g.settingsDirtyTimer = 0f
-        val buf = StringBuilder()
+        g.settingsIniData.clear()
         for (handler in g.settingsHandlers)
-            handler.writeAllFn(g, handler, buf)
-        g.settingsIniData = buf.toString()
-        return g.settingsIniData
+            handler.writeAllFn!!.invoke(g, handler, g.settingsIniData)
+        return g.settingsIniData.toString()
     }
 }

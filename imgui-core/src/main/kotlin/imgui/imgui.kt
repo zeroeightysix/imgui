@@ -193,7 +193,7 @@ object ImGui :
         basicHelpersForWidgetCode,
         imgui.internal.api.loggingCapture,
         PopupsModalsTooltips,
-        navigation,
+        gamepadKeyboardNavigation,
         focusScope,
         inputs,
         imgui.internal.api.dragAndDrop,

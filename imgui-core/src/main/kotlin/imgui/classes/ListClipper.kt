@@ -1,9 +1,11 @@
 package imgui.classes
 
+import glm_.i
 import glm_.max
-import imgui.ImGui
 import imgui.ImGui.calcListClipping
+import imgui.ImGui.tableEndRow
 import imgui.api.g
+import imgui.api.miscellaneousUtilities.Companion.skipItemForListClipping
 
 /** Helper: Manually clip large list of items.
  *  If you are submitting lots of evenly spaced items and you have a random access to the list, you can perform coarse
@@ -34,7 +36,7 @@ class ListClipper
  *  begin()/end() api directly, but prefer calling step().   */
 constructor(itemsCount: Int = -1, itemsHeight: Float = -1f) {
 
-    @Deprecated("Dummy deprecation: this is a remainder this is inclusive on the JVM, unlike the native imgui")
+    @Deprecated("Dummy deprecation: this is a placeholder/remainder this is inclusive on the JVM, unlike the native imgui")
     lateinit var display: IntRange
     var itemsCount = 0
 
@@ -53,9 +55,13 @@ constructor(itemsCount: Int = -1, itemsHeight: Float = -1f) {
     fun step(): Boolean {
         val window = g.currentWindow!!
 
+        val table = g.currentTable
+        if (table?.isInsideRow == true)
+            tableEndRow(table)
+
         return when {
 
-            itemsCount == 0 || window.skipItems -> {
+            itemsCount == 0 || skipItemForListClipping -> {
                 itemsCount = -1
                 false
             }
@@ -74,7 +80,15 @@ constructor(itemsCount: Int = -1, itemsHeight: Float = -1f) {
                     itemsCount = -1
                     false
                 } else {
-                    val itemsHeight = window.dc.cursorPos.y - startPosY
+                    val itemsHeight = when {
+                        table != null -> {
+                            val posY1 = table.rowPosY1   // Using this instead of StartPosY to handle clipper straddling the frozen row
+                            val posY2 = table.rowPosY2   // Using this instead of CursorPos.y to take account of tallest cell.
+                            window.dc.cursorPos.y = posY2
+                            posY2 - posY1
+                        }
+                        else -> window.dc.cursorPos.y - startPosY
+                    }
                     assert(itemsHeight > 0f) { "If this triggers, it means Item 0 hasn't moved the cursor vertically" }
                     begin(itemsCount - 1, itemsHeight)
                     display = display.first + 1 until display.last + 1
@@ -109,6 +123,10 @@ constructor(itemsCount: Int = -1, itemsHeight: Float = -1f) {
 
         val window = g.currentWindow!!
 
+        g.currentTable?.let {
+            if (it.isInsideRow)
+                tableEndRow(it)
+        }
         startPosY = window.dc.cursorPos.y
         this.itemsHeight = itemsHeight
         this.itemsCount = itemsCount
@@ -143,11 +161,18 @@ constructor(itemsCount: Int = -1, itemsHeight: Float = -1f) {
                 stumble on the same issue.
                 The clipper should probably have a 4th step to display the last item in a regular manner.   */
             g.currentWindow!!.dc.apply {
+                val offY = posY - cursorPos.y
                 cursorPos.y = posY
                 cursorMaxPos.y = cursorMaxPos.y max posY
-                cursorPosPrevLine.y = cursorPos.y - lineHeight  // Setting those fields so that SetScrollHereY() can properly function after the end of our clipper usage.
-                prevLineSize.y = (lineHeight - g.style.itemSpacing.y)      // If we end up needing more accurate data (to e.g. use SameLine) we may as well make the clipper have a fourth step to let user process and display the last item in their list.
-                currentColumns?.lineMinY = cursorPos.y                         // Setting this so that cell Y position are set properly
+                cursorPosPrevLine.y = cursorPos.y - lineHeight          // Setting those fields so that SetScrollHereY() can properly function after the end of our clipper usage.
+                prevLineSize.y = (lineHeight - g.style.itemSpacing.y)   // If we end up needing more accurate data (to e.g. use SameLine) we may as well make the clipper have a fourth step to let user process and display the last item in their list.
+                currentColumns?.lineMinY = cursorPos.y                  // Setting this so that cell Y position are set properly // FIXME-TABLE
+                g.currentTable?.let {
+                    if (it.isInsideRow)
+                        tableEndRow(it)
+                    it.rowPosY2 = cursorPos.y
+                    it.rowBgColorCounter += ((offY / lineHeight) + 0.5f).i
+                }
             }
         }
     }

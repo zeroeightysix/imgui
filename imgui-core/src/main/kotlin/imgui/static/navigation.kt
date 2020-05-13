@@ -26,6 +26,8 @@ import imgui.ImGui.isKeyDown
 import imgui.ImGui.isMouseHoveringRect
 import imgui.ImGui.isMousePosValid
 import imgui.ImGui.navInitWindow
+import imgui.ImGui.navMoveRequestButNoResultYet
+import imgui.ImGui.navMoveRequestForward
 import imgui.ImGui.popStyleVar
 import imgui.ImGui.pushStyleVar
 import imgui.ImGui.selectable
@@ -51,6 +53,8 @@ import imgui.internal.ItemFlag as If
 fun navUpdate() {
 
     io.wantSetMousePos = false
+    g.navWrapRequestWindow = null
+    g.navWrapRequestFlags = NavMoveFlag.None.i
 
 //    if (g.NavScoringCount > 0) printf("[%05d] NavScoringCount %d for '%s' layer %d (Init:%d, Move:%d)\n", g.FrameCount, g.NavScoringCount, g.NavWindow ? g . NavWindow->Name : "NULL", g.NavLayer, g.NavInitRequest || g.NavInitResultId != 0, g.NavMoveRequest)
 
@@ -486,8 +490,8 @@ fun navUpdateWindowingOverlay() {
 
     if (g.navWindowingTimer < NAV_WINDOWING_LIST_APPEAR_DELAY) return
 
-    if (g.navWindowingList.isEmpty())
-        findWindowByName("###NavWindowingList")?.let { g.navWindowingList += it }
+    if (g.navWindowingListWindow.isEmpty())
+        findWindowByName("###NavWindowingList")?.let { g.navWindowingListWindow += it }
     setNextWindowSizeConstraints(Vec2(io.displaySize.x * 0.2f, io.displaySize.y * 0.2f), Vec2(Float.MAX_VALUE))
     setNextWindowPos(Vec2(io.displaySize.x * 0.5f, io.displaySize.y * 0.5f), Cond.Always, Vec2(0.5f))
     pushStyleVar(StyleVar.WindowPadding, style.windowPadding * 2f)
@@ -631,6 +635,60 @@ fun navUpdateAnyRequestFlag() {
     g.navAnyRequest = g.navMoveRequest || g.navInitRequest || (IMGUI_DEBUG_NAV_SCORING && g.navWindow != null)
     if (g.navAnyRequest)
         assert(g.navWindow != null)
+}
+
+fun navEndFrame() {
+
+    // Show CTRL+TAB list window
+    if (g.navWindowingTarget != null)
+        navUpdateWindowingOverlay()
+
+    // Perform wrap-around in menus
+    val window = g.navWrapRequestWindow
+    val moveFlags = g.navWrapRequestFlags
+    if (window != null && g.navWindow === window && navMoveRequestButNoResultYet() && g.navMoveRequestForward == NavForward.None && g.navLayer == NavLayer.Main) {
+
+        assert(moveFlags != 0){"No points calling this with no wrapping"}
+        val bbRel = Rect(window.navRectRel[0])
+
+        var clipDir = g.navMoveDir
+        if (g.navMoveDir == Dir.Left && moveFlags has (NavMoveFlag.WrapX or NavMoveFlag.LoopX)) {
+            bbRel.min.x = max(window.sizeFull.x, window.contentSize.x + window.windowPadding.x * 2f) - window.scroll.x
+            bbRel.max.x = bbRel.min.x
+            if (moveFlags has NavMoveFlag.WrapX) {
+                bbRel translateY -bbRel.height
+                clipDir = Dir.Up
+            }
+            navMoveRequestForward(g.navMoveDir, clipDir, bbRel, moveFlags)
+        }
+        if (g.navMoveDir == Dir.Right && moveFlags has (NavMoveFlag.WrapX or NavMoveFlag.LoopX)) {
+            bbRel.min.x = -window.scroll.x
+            bbRel.max.x = -window.scroll.x
+            if (moveFlags has NavMoveFlag.WrapX) {
+                bbRel translateY +bbRel.height
+                clipDir = Dir.Down
+            }
+            navMoveRequestForward(g.navMoveDir, clipDir, bbRel, moveFlags)
+        }
+        if (g.navMoveDir == Dir.Up && moveFlags has (NavMoveFlag.WrapY or NavMoveFlag.LoopY)) {
+            bbRel.min.y = max(window.sizeFull.y, window.contentSize.y + window.windowPadding.y * 2f) - window.scroll.y
+            bbRel.max.y = bbRel.min.y
+            if (moveFlags has NavMoveFlag.WrapY) {
+                bbRel translateX -bbRel.width
+                clipDir = Dir.Left
+            }
+            navMoveRequestForward(g.navMoveDir, clipDir, bbRel, moveFlags)
+        }
+        if (g.navMoveDir == Dir.Down && moveFlags has (NavMoveFlag.WrapY or NavMoveFlag.LoopY)) {
+            bbRel.min.y = -window.scroll.y
+            bbRel.max.y = bbRel.min.y
+            if (moveFlags has NavMoveFlag.WrapY) {
+                bbRel translateX +bbRel.width
+                clipDir = Dir.Right
+            }
+            navMoveRequestForward(g.navMoveDir, clipDir, bbRel, moveFlags)
+        }
+    }
 }
 
 /** Scoring function for gamepad/keyboard directional navigation. Based on https://gist.github.com/rygorous/6981057  */

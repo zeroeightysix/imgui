@@ -240,4 +240,5 @@ internal interface dataTypeHelpers {
         }
     }
 
+//    IMGUI_API bool          DataTypeClamp(ImGuiDataType data_type, void* p_data, const void* p_min, const void* p_max);
 }

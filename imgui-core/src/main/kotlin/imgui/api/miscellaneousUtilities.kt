@@ -61,6 +61,13 @@ interface miscellaneousUtilities {
             window.dc.stateStorage = value ?: window.stateStorage
         }
 
+    companion object {
+        /** FIXME-TABLE: This prevents us from using ImGuiListClipper _inside_ a table cell.
+         *  The problem we have is that without a Begin/End scheme for rows using the clipper is ambiguous. */
+        val skipItemForListClipping: Boolean
+            get() = g.currentTable?.hostSkipItems ?: g.currentWindow!!.skipItems
+    }
+
     /** calculate coarse clipping for large list of evenly sized items. Prefer using the ImGuiListClipper higher-level
      *  helper if you can.
      *  Helper to calculate coarse clipping of large list of evenly sized items.
@@ -71,7 +78,7 @@ interface miscellaneousUtilities {
         val window = g.currentWindow!!
         return when {
             g.logEnabled -> 0 until itemsCount // If logging is active, do not perform any clipping
-            window.skipItems -> 0 until 0
+            skipItemForListClipping -> 0 until 0
             else -> {
                 // We create the union of the ClipRect and the NavScoringRect which at worst should be 1 page away from ClipRect
                 val unclippedRect = window.clipRect

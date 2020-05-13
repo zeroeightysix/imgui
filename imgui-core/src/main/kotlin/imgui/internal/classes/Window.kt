@@ -36,9 +36,11 @@ import kotlin.reflect.KMutableProperty0
 import imgui.WindowFlag as Wf
 
 /** Storage for one window */
-class Window(var context: Context,
-             /** Window name, owned by the window. */
-             var name: String) {
+class Window(
+        var context: Context,
+        /** Window name, owned by the window. */
+        var name: String
+) {
 
     /** == ImHashStr(Name) */
     val id: ID = hash(name)
@@ -256,8 +258,10 @@ class Window(var context: Context,
     /** Reference rectangle, in window relative space   */
     val navRectRel = Array(NavLayer.COUNT) { Rect() }
 
-
+    /** Set when window extraneous data have been garbage collected */
     var memoryCompacted = false
+
+    /** Backup of last idx/vtx count, so when waking up the window we can preallocate and avoid iterative alloc/copy */
     var memoryDrawListIdxCapacity = 0
     var memoryDrawListVtxCapacity = 0
 
@@ -267,7 +271,7 @@ class Window(var context: Context,
         val seed: ID = idStack.last()
         val id: ID = hash(strID, end, seed)
         keepAliveID(id)
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo2?.invoke(g, DataType._String, id, strID, end)
         return id
     }
@@ -277,7 +281,7 @@ class Window(var context: Context,
         val seed: ID = idStack.last()
         val id: ID = hash(System.identityHashCode(ptrID), seed)
         keepAliveID(id)
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo?.invoke(g, DataType._Pointer, id, ptrID)
         return id
     }
@@ -288,7 +292,7 @@ class Window(var context: Context,
         val seed: ID = idStack.last()
         val id = hash(System.identityHashCode(ptrId[intPtr.i]), seed)
         keepAliveID(id)
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo?.invoke(g, DataType._Pointer, id, intPtr)
         return id
     }
@@ -297,21 +301,21 @@ class Window(var context: Context,
         val seed = idStack.last()
         val id = hash(n, seed)
         keepAliveID(id)
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo?.invoke(g, DataType.Int, id, n)
         return id
     }
 
     fun getIdNoKeepAlive(strID: String, strEnd: Int = strID.length): ID {
         val id = hash(strID, strID.length - strEnd, seed_ = idStack.last())
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo2?.invoke(g, DataType._String, id, strID, strEnd)
         return id
     }
 
     fun getIdNoKeepAlive(ptrID: Any): ID {
         val id = hash(System.identityHashCode(ptrID), seed = idStack.last())
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo?.invoke(g, DataType._Pointer, id, ptrID)
         return id
     }
@@ -319,14 +323,14 @@ class Window(var context: Context,
     fun getIdNoKeepAlive(intPtr: Long): ID {
         if (intPtr >= ptrId.size) increase()
         val id = hash(System.identityHashCode(ptrId[intPtr.i]), seed = idStack.last())
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo?.invoke(g, DataType._Pointer, id, intPtr)
         return id
     }
 
     fun getIdNoKeepAlive(n: Int): ID {
         val id = hash(n, seed = idStack.last())
-        if(IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
+        if (IMGUI_ENABLE_TEST_ENGINE && g.testEngineHookIdInfo == id)
             Hook.idInfo?.invoke(g, DataType.Int, id, n)
         return id
     }
@@ -448,7 +452,7 @@ class Window(var context: Context,
     }
 
     /** Can we focus this window with CTRL+TAB (or PadMenu + PadFocusPrev/PadFocusNext)
-     *  Note that NoNavFocus makes the window not reachable with CTRL+TAB but it can still be focused with mouse or programmaticaly.
+     *  Note that NoNavFocus makes the window not reachable with CTRL+TAB but it can still be focused with mouse or programmatically.
      *  If you want a window to never be focused, you may use the e.g. NoInputs flag.
      *  ~ IsWindowNavFocusable */
     val isNavFocusable: Boolean
@@ -671,7 +675,7 @@ class Window(var context: Context,
 
     /** Return scrollbar rectangle, must only be called for corresponding axis if window->ScrollbarX/Y is set.
      *  ~GetWindowScrollbarRect     */
-    infix fun getScrollbarRect(axis: Axis): Rect    {
+    infix fun getScrollbarRect(axis: Axis): Rect {
         val outerRect = rect()
 //        val innerRect = innerRect
         val borderSize = windowBorderSize

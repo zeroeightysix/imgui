@@ -10,9 +10,7 @@ import imgui.font.Font
 import imgui.font.FontAtlas
 import imgui.internal.*
 import imgui.internal.classes.*
-import imgui.static.windowSettingsHandler_ReadLine
-import imgui.static.windowSettingsHandler_ReadOpen
-import imgui.static.windowSettingsHandler_WriteAll
+import imgui.static.*
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.*
@@ -216,6 +214,7 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
     /** Focused item for navigation */
     var navId: ID = 0
 
+    /** Identify a selection scope (selection code often wants to "clear other items" when landing on an item of the selection set) */
     var navFocusScopeId = 0
 
     /** ~~ (g.activeId == 0) && NavInput.Activate.isPressed() ? navId : 0, also set when calling activateItem() */
@@ -281,8 +280,10 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
 
     var navInitRequestFromMove = false
 
+    /** Init request result (first item of the window, or one for which SetItemDefaultFocus() was called) */
     var navInitResultId: ID = 0
 
+    /** Init request result rectangle (relative to parent window) */
     var navInitResultRectRel = Rect()
 
     /** Set by manual scrolling, if we scroll to a point where NavId isn't visible we reset navigation from visible items   */
@@ -316,16 +317,22 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
     /** Best move request candidate within NavWindow's flattened hierarchy (when using WindowFlags.NavFlattened flag)   */
     var navMoveResultOther = NavMoveResult()
 
+    /** Window which requested trying nav wrap-around. */
+    var navWrapRequestWindow: Window? = null
 
-    // Navigation: Windowing (CTRL+TAB, holding Menu button + directional pads to move/resize)
+    /** Wrap-around operation flags. */
+    var navWrapRequestFlags = NavMoveFlag.None.i
 
-    /** When selecting a window (holding Menu+FocusPrev/Next, or equivalent of CTRL-TAB) this window is temporarily displayed top-most.   */
+    // Navigation: Windowing (CTRL+TAB for list, or Menu button + keys or directional pads to move/resize)
+
+    /** Target window when doing CTRL+Tab (or Pad Menu + FocusPrev/Next), this window is temporarily displayed top-most! */
     var navWindowingTarget: Window? = null
 
-    /** Record of last valid NavWindowingTarget until DimBgRatio and NavWindowingHighlightAlpha becomes 0f */
+    /** Record of last valid NavWindowingTarget until DimBgRatio and NavWindowingHighlightAlpha becomes 0.0f, so the fade-out can stay on it. */
     var navWindowingTargetAnim: Window? = null
 
-    val navWindowingList = ArrayList<Window>()
+    /** Internal window actually listing the CTRL+Tab contents */
+    val navWindowingListWindow = ArrayList<Window>()
 
     var navWindowingTimer = 0f
 
@@ -504,7 +511,7 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
     var settingsDirtyTimer = 0f
 
     /** In memory .ini Settings for Window  */
-    var settingsIniData = ""
+    val settingsIniData = StringBuilder()
 
     /** List of .ini settings handlers */
     val settingsHandlers = ArrayList<SettingsHandler>()
@@ -519,8 +526,10 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
     // Capture/Logging
     //------------------------------------------------------------------
 
+    /** Currently capturing */
     var logEnabled = false
 
+    /** Capture target */
     var logType = LogType.None
 
     /** If != NULL log to stdout/ file  */
@@ -541,6 +550,7 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
 
     // Debug Tools
 
+    /** Item picker is active (started with DebugStartItemPicker()) */
     var debugItemPickerActive = false
 
     /** Will call IM_DEBUG_BREAK() when encountering this id */
@@ -587,6 +597,8 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
         g.settingsHandlers += SettingsHandler().apply {
             typeName = "Window"
             typeHash = hash("Window")
+            clearAllFn = ::windowSettingsHandler_ClearAll
+            applyAllFn = ::windowSettingsHandler_ApplyAll
             readOpenFn = ::windowSettingsHandler_ReadOpen
             readLineFn = ::windowSettingsHandler_ReadLine
             writeAllFn = ::windowSettingsHandler_WriteAll
@@ -652,6 +664,10 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
             tabBars.clear()
             currentTabBarStack.clear()
             shrinkWidthBuffer.clear()
+
+            g.tables.clear()
+            g.currentTableStack.clear()
+            g.drawChannelsTempMergeBuffer.clear() // TODO clear properly
 
             clipboardHandlerData = ""
             g.menusIdSubmittedThisFrame.clear()
