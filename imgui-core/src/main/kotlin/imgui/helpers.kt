@@ -22,11 +22,11 @@ import kotlin.reflect.KMutableProperty0
 internal var ptrId: Array<Int> = Array(512) { it }
 
 
-operator fun StringBuilder.plusAssign(string: String) {
+operator fun StringBuilder.plusAssign(string: String) { // TODO remove
     append(string)
 }
 
-operator fun StringBuilder.plusAssign(char: Char) {
+operator fun StringBuilder.plusAssign(char: Char) { // TODO remove
     append(char)
 }
 
@@ -42,25 +42,6 @@ typealias InputTextCallback = (InputTextCallbackData) -> Boolean
 typealias SizeCallback = (SizeCallbackData) -> Unit
 
 typealias TextEditCallbackData = InputTextCallbackData
-
-infix fun String.cmp(charArray: CharArray): Boolean {
-    for (i in indices)
-        if (get(i) != charArray[i])
-            return false
-    return true
-}
-
-infix fun CharArray.cmp(other: CharArray): Boolean {
-    for (i in indices) {
-        val a = get(i)
-        val b = other.getOrElse(i) { return false }
-        if (a == NUL)
-            return b == NUL
-        if (a != b)
-            return false
-    }
-    return true
-}
 
 object Debug {
 
@@ -168,7 +149,7 @@ val Vec4.u32: Int
         return out or (F32_TO_INT8_SAT(w) shl COL32_A_SHIFT)
     }
 
-infix fun Int.wo(i: Int) = and(i.inv())
+infix fun Int.wo(i: Int) = and(i.inv()) // TODO remove
 
 var imeInProgress = false
 //    var imeLastKey = 0
@@ -213,9 +194,10 @@ infix fun ByteArray.strcmp(other: ByteArray): Int {
 }
 
 /** TODO -> uno or kool */
-operator fun <T> KMutableProperty0<T>.invoke(t: T): KMutableProperty0<T> {
+operator fun <T> KMutableProperty0<T>.invoke(t: T): KMutableProperty0<T> { // TODO remove
     set(t)
     return this
 }
 
-val ByteArray.cStr get() = String(this, 0, strlen())
+val ByteArray.cStr: String
+    get() = String(this, 0, strlen())

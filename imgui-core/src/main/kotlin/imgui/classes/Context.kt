@@ -4,6 +4,9 @@ import glm_.vec2.Vec2
 import glm_.vec4.Vec4
 import imgui.*
 import imgui.ImGui.saveIniSettingsToDisk
+import imgui.ImGui.tableSettingsHandler_ReadLine
+import imgui.ImGui.tableSettingsHandler_ReadOpen
+import imgui.ImGui.tableSettingsHandler_WriteAll
 import imgui.api.g
 import imgui.api.gImGui
 import imgui.font.Font
@@ -602,6 +605,15 @@ class Context(sharedFontAtlas: FontAtlas? = null) {
             readOpenFn = ::windowSettingsHandler_ReadOpen
             readLineFn = ::windowSettingsHandler_ReadLine
             writeAllFn = ::windowSettingsHandler_WriteAll
+        }
+
+        // Add .ini handle for ImGuiTable type
+        g.settingsHandlers += SettingsHandler().apply{
+            typeName = "Table"
+            typeHash = hash("Table")
+            readOpenFn = ::tableSettingsHandler_ReadOpen
+            readLineFn = ::tableSettingsHandler_ReadLine
+            writeAllFn = ::tableSettingsHandler_WriteAll
         }
 
         g.initialized = true

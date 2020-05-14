@@ -444,11 +444,13 @@ interface tables {
                 column.widthRequested = initWidthOrWeight
                 column.autoFitQueue = 0x00
             }
-            if (flags has Tcf.WidthStretch) {
-                assert(initWidthOrWeight < 0f || initWidthOrWeight > 0f)
-                column.resizeWeight = if (initWidthOrWeight < 0f) 1f else initWidthOrWeight
-            } else
-                column.resizeWeight = 1f
+            column.resizeWeight = when {
+                flags has Tcf.WidthStretch -> {
+                    assert(initWidthOrWeight < 0f || initWidthOrWeight > 0f)
+                    if (initWidthOrWeight < 0f) 1f else initWidthOrWeight
+                }
+                else -> 1f
+            }
         }
         if (table.isInitializing && !table.isSettingsLoaded) {
             // Init default visibility/sort state
@@ -666,7 +668,7 @@ interface tables {
                     popStyleColor()
                     x += wSortText
                 }
-                window.drawList.renderArrow(Vec2(x, y), col, if(column.sortDirection == SortDirection.Ascending) Dir.Up else Dir.Down, ARROW_SCALE)
+                window.drawList.renderArrow(Vec2(x, y), col, if (column.sortDirection == SortDirection.Ascending) Dir.Up else Dir.Down, ARROW_SCALE)
             }
 
             // Handle clicking on column header to adjust Sort Order

@@ -562,7 +562,7 @@ class TableColumnSettings {
     var sortDirection: SortDirection
         get() = SortDirection.values()[((int shr 1) and 0b0111_1111).b.i]
         set(value) {
-            int = (int and 0b1111_1111_0000_0001) or ((value.ordinal shl 1) and 0b00000000_11111110)
+            int = (int and 0b11111111_11111111_11111111_00000001.i) or ((value.ordinal shl 1) and 0b11111110)
         }
 
     /** This is called Active in ImGuiTableColumn, in .ini file we call it Visible. */
@@ -588,6 +588,7 @@ class TableColumnSettings {
         displayOrder=$displayOrder
         sortOrder=$sortOrder
         sortDirection=$sortDirection
+        visible=$visible
     """.trimIndent()
 }
 
@@ -829,9 +830,6 @@ class TableColumn {
             longs[2] = (longs[2] and 0xffff_ffff_ff00_ffffUL) or ((value.ordinal.L and 0xff) shl 16)
         }
 
-    val sortDirection_: Int
-        get() = (longs[2] shr 16).b.i
-
     init {
         nameOffset = -1
         isActive = true
@@ -869,7 +867,7 @@ class TableColumn {
         autoFitQueue=$autoFitQueue
         cannotSkipItemsQueue=$cannotSkipItemsQueue
         sortOrder=$sortOrder
-        sortDirection=$sortDirection_
+        sortDirection=$sortDirection
         """.trimIndent()
 }
 
@@ -900,4 +898,9 @@ class TableSettings(columnsCount: Int) {
 
     //    [JVM] we store here
     var columnSettings = Array(columnsCount) { TableColumnSettings() }
+
+    override fun toString(): String = """
+        columnsCount=$columnsCount
+        columnsCountMax=$columnsCountMax
+    """.trimIndent()
 }

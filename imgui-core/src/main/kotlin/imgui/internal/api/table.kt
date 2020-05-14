@@ -30,7 +30,6 @@ import imgui.ImGui.separator
 import imgui.ImGui.setNextWindowContentSize
 import imgui.ImGui.style
 import imgui.ImGui.tableFixFlags
-import imgui.api.SpanAllocator
 import imgui.api.g
 import imgui.api.tables.Companion.TABLE_RESIZE_SEPARATOR_FEEDBACK_TIMER
 import imgui.api.tables.Companion.TABLE_RESIZE_SEPARATOR_HALF_THICKNESS
@@ -50,8 +49,10 @@ internal interface table {
 
     fun findTableByID(id: ID): Table? = g.tables.getByKey(id)
 
-    fun beginTableEx(name: String, id: ID, columnsCount: Int, flags_: TableFlags = Tf.None.i,
-            outerSize: Vec2 = Vec2(), innerWidth: Float = 0f): Boolean {
+    fun beginTableEx(
+            name: String, id: ID, columnsCount: Int, flags_: TableFlags = Tf.None.i,
+            outerSize: Vec2 = Vec2(), innerWidth: Float = 0f
+    ): Boolean {
 
         var flags = flags_
 
@@ -972,7 +973,7 @@ internal interface table {
         if (mergeGroupMask != 0) {
             // Use shared temporary storage so the allocation gets amortized
 //            g.drawChannelsTempMergeBuffer.resize(splitter->_Count-1)
-            for(i in splitter._count - 1 until g.drawChannelsTempMergeBuffer.size) {
+            for (i in splitter._count - 1 until g.drawChannelsTempMergeBuffer.size) {
 //                g.drawChannelsTempMergeBuffer.last().free()
                 g.drawChannelsTempMergeBuffer.removeAt(g.drawChannelsTempMergeBuffer.lastIndex)
             }
@@ -1458,7 +1459,7 @@ internal interface table {
             val columnSettings = settings.columnSettings[dataN]
             val columnN = columnSettings.index
             if (columnN < 0 || columnN >= table.columnsCount)
-            continue
+                continue
             val column = table.columns[columnN]!!
             //column->WidthRequested = column_settings->WidthOrWeight; // FIXME-WIP
             if (columnSettings.displayOrder != -1)
@@ -1477,7 +1478,13 @@ internal interface table {
     }
 
     companion object {
-        fun createTableSettings(id: ID, columnsCount: Int) = TableSettings(columnsCount).also { it.id = id }
+
+        fun createTableSettings(id: ID, columnsCount: Int): TableSettings {
+            val settings = TableSettings(columnsCount)
+            g.settingsTables += settings
+            settings.id = id
+            return settings
+        }
 
         // FIXME-OPT: Might want to store a lookup map for this?
         fun findTableSettingsByID(id: ID): TableSettings? = g.settingsTables.find { it.id == id }
@@ -1500,7 +1507,7 @@ internal interface table {
             for (columnN in 0 until table.columnsCount) {
                 val column = table.columns[columnN]!!
                 if (!column.isActive || column.flags hasnt Tcf.WidthStretch)
-                continue
+                    continue
                 visibleWeight += column.resizeWeight
                 visibleWidth += column.widthRequested
             }
@@ -1510,7 +1517,7 @@ internal interface table {
             for (columnN in 0 until table.columnsCount) {
                 val column = table.columns[columnN]!!
                 if (!column.isActive || column.flags hasnt Tcf.WidthStretch)
-                continue
+                    continue
                 column.resizeWeight = column.widthRequested / visibleWidth
             }
         }
@@ -1576,7 +1583,7 @@ internal interface table {
         if (name.startsWith("0x")) {
             val chunks = name.split(',')
             if (chunks.size == 2) {
-                val id = chunks[0].substring(2).toInt(16)
+                val id = chunks[0].substring(2).toLong(16).i
                 val columnsCount = chunks[1].i
                 return createTableSettings(id, columnsCount)
             }

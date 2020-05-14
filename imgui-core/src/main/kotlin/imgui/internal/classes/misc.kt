@@ -354,7 +354,7 @@ typealias ClearAllFn = (ctx: Context, handler: SettingsHandler) -> Unit
 typealias ApplyAllFn = (ctx: Context, handler: SettingsHandler) -> Unit
 
 /** Read: Called when entering into a new ini entry e.g. "[Window][Name]" */
-typealias ReadOpenFn = (ctx: Context, handler: SettingsHandler, name: String) -> Any
+typealias ReadOpenFn = (ctx: Context, handler: SettingsHandler, name: String) -> Any?
 
 /** Read: Called for every line of text within an ini entry */
 typealias ReadLineFn = (ctx: Context, handler: SettingsHandler, entry: Any, line: String) -> Unit

@@ -92,37 +92,11 @@ object ShowDemoWindowTables {
             setNextItemOpen(openAction != 0)
         resizableMixed()
 
-/*
         if (openAction != -1)
-            ImGui::SetNextItemOpen(open_action != 0)
-        if (ImGui::TreeNode("Reorderable, hideable, with headers")) {
-            HelpMarker("Click and drag column headers to reorder columns.\n\nYou can also right-click on a header to open a context menu.")
-            static ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
-            ImGui::CheckboxFlags("ImGuiTableFlags_Resizable", (unsigned int *)& flags, ImGuiTableFlags_Resizable)
-            ImGui::CheckboxFlags("ImGuiTableFlags_Reorderable", (unsigned int *)& flags, ImGuiTableFlags_Reorderable)
-            ImGui::CheckboxFlags("ImGuiTableFlags_Hideable", (unsigned int *)& flags, ImGuiTableFlags_Hideable)
+            setNextItemOpen(openAction != 0)
+//        reorderableHideableWithHeaders()
 
-            if (ImGui::BeginTable("##table1", 3, flags)) {
-                // Submit columns name with TableSetupColumn() and call TableAutoHeaders() to create a row with a header in each column.
-                // (Later we will show how TableSetupColumn() has other uses, optional flags, sizing weight etc.)
-                ImGui::TableSetupColumn("One")
-                ImGui::TableSetupColumn("Two")
-                ImGui::TableSetupColumn("Three")
-                ImGui::TableAutoHeaders()
-                for (int row = 0; row < 6; row++)
-                {
-                    ImGui::TableNextRow()
-                    for (int column = 0; column < 3; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        ImGui::Text("Hello %d,%d", row, column)
-                    }
-                }
-                ImGui::EndTable()
-            }
-            ImGui::TreePop()
-        }
-
+/*
         if (openAction != -1)
             ImGui::SetNextItemOpen(open_action != 0)
         if (ImGui::TreeNode("Vertical scrolling, with clipping")) {
@@ -921,7 +895,6 @@ object ShowDemoWindowTables {
     // Expose a few Borders related flags interactively
     var flags0 = Tf.BordersOuter or Tf.RowBg
     var displayWidth = false
-
     fun bordersBackground() = treeNode("Borders, background") {
         // Expose a few Borders related flags interactively
         checkboxFlags("ImGuiTableFlags_RowBg", ::flags0, Tf.RowBg.i)
@@ -1041,6 +1014,30 @@ object ShowDemoWindowTables {
                 for (column in 0..5) {
                     tableSetColumnIndex(column)
                     text("${if (column >= 3) "Stretch" else "Fixed"} $row,$column")
+                }
+            }
+        }
+    }
+
+    var flags4 = Tf.Resizable or Tf.Reorderable or Tf.Hideable or Tf.BordersOuter or Tf.BordersV
+    fun reorderableHideableWithHeaders() = treeNode("Reorderable, hideable, with headers") {
+        helpMarker("Click and drag column headers to reorder columns.\n\nYou can also right-click on a header to open a context menu.")
+        checkboxFlags("ImGuiTableFlags_Resizable", ::flags4, Tf.Resizable.i)
+        checkboxFlags("ImGuiTableFlags_Reorderable", ::flags4, Tf.Reorderable.i)
+        checkboxFlags("ImGuiTableFlags_Hideable", ::flags4, Tf.Hideable.i)
+
+        table("##table1", 3, flags4) {
+            // Submit columns name with TableSetupColumn() and call TableAutoHeaders() to create a row with a header in each column.
+            // (Later we will show how TableSetupColumn() has other uses, optional flags, sizing weight etc.)
+            tableSetupColumn("One")
+            tableSetupColumn("Two")
+            tableSetupColumn("Three")
+            tableAutoHeaders()
+            for (row in 0..5) {
+                tableNextRow()
+                for (column in 0..2) {
+                    tableSetColumnIndex(column)
+                    text("Hello $row,$column")
                 }
             }
         }
