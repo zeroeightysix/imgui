@@ -26,8 +26,8 @@ import imgui.ImGui.renderText
 import imgui.ImGui.renderTextClipped
 import imgui.ImGui.sameLine
 import imgui.ImGui.style
-import imgui.internal.classes.Rect
 import imgui.internal.*
+import imgui.internal.classes.Rect
 import kool.getValue
 import kool.setValue
 import kotlin.reflect.KMutableProperty0
@@ -90,8 +90,10 @@ interface widgetsMain {
 
     fun arrowButton(id: String, dir: Dir): Boolean = arrowButtonEx(id, dir, Vec2(frameHeight), Bf.None.i)
 
-    fun image(userTextureId: TextureID, size: Vec2, uv0: Vec2 = Vec2(), uv1: Vec2 = Vec2(1), tintCol: Vec4 = Vec4(1),
-              borderCol: Vec4 = Vec4()) {
+    fun image(
+            userTextureId: TextureID, size: Vec2, uv0: Vec2 = Vec2(), uv1: Vec2 = Vec2(1), tintCol: Vec4 = Vec4(1),
+            borderCol: Vec4 = Vec4()
+    ) {
 
         val window = currentWindow
         if (window.skipItems) return
@@ -112,8 +114,10 @@ interface widgetsMain {
      *  frame_padding = 0: no framing/padding
      *  frame_padding > 0: set framing size
      *  The color used are the button colors.   */
-    fun imageButton(userTextureId: TextureID, size: Vec2, uv0: Vec2 = Vec2(), uv1: Vec2 = Vec2(), framePadding: Int = -1,
-                    bgCol: Vec4 = Vec4(), tintCol: Vec4 = Vec4(1)): Boolean {
+    fun imageButton(
+            userTextureId: TextureID, size: Vec2, uv0: Vec2 = Vec2(), uv1: Vec2 = Vec2(), framePadding: Int = -1,
+            bgCol: Vec4 = Vec4(), tintCol: Vec4 = Vec4(1)
+    ): Boolean {
 
         val window = currentWindow
         if (window.skipItems) return false
@@ -197,14 +201,14 @@ interface widgetsMain {
         return pressed
     }
 
-    fun checkboxFlags(label: String, flags: IntArray, flagsValue: Int): Boolean {
-        val v = booleanArrayOf((flags[0] and flagsValue) == flagsValue)
+    fun checkboxFlags(label: String, flags: IntArray, ptr: Int, flagsValue: Int): Boolean {
+        val v = booleanArrayOf((flags[ptr] and flagsValue) == flagsValue)
         val pressed = checkbox(label, v)
         if (pressed) {
-            if (v[0])
-                flags[0] = flags[0] or flagsValue
-            else
-                flags[0] = flags[0] wo flagsValue
+            flags[ptr] = when {
+                v[0] -> flags[ptr] or flagsValue
+                else -> flags[ptr] wo flagsValue
+            }
         }
         return pressed
     }

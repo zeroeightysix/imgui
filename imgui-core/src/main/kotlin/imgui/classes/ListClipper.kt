@@ -36,7 +36,7 @@ class ListClipper
  *  begin()/end() api directly, but prefer calling step().   */
 constructor(itemsCount: Int = -1, itemsHeight: Float = -1f) {
 
-    @Deprecated("Dummy deprecation: this is a placeholder/remainder this is inclusive on the JVM, unlike the native imgui")
+    @Deprecated("Dummy deprecation: this is a placeholder/remainder that the end is inclusive on the JVM, unlike the native imgui")
     lateinit var display: IntRange
     var itemsCount = 0
 

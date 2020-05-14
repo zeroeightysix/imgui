@@ -85,9 +85,12 @@ object dsl {
 
     // Windows
 
-    inline fun window(name: String, open: KMutableProperty0<Boolean>? = null, flags: WindowFlags = 0, block: () -> Unit) {
+    fun window(name: String, open: KMutableProperty0<Boolean>? = null, flags: WindowFlags = 0, block: () -> Unit) {
         if (begin(name, open, flags)) // ~open
-            try {
+            if (DEBUG) {
+                block()
+                end()
+            } else try {
                 block()
             } finally {
                 end()
@@ -98,9 +101,12 @@ object dsl {
 
     // Child Windows
 
-    inline fun child(strId: String, size: Vec2 = Vec2(), border: Boolean = false, extraFlags: WindowFlags = 0, block: () -> Unit) {
+    fun child(strId: String, size: Vec2 = Vec2(), border: Boolean = false, extraFlags: WindowFlags = 0, block: () -> Unit) {
         if (beginChild(strId, size, border, extraFlags)) // ~open
-            try {
+            if (DEBUG) {
+                block()
+                endChild()
+            } else try {
                 block()
             } finally {
                 endChild()
@@ -111,9 +117,12 @@ object dsl {
 
     // Parameters stacks (shared)
 
-    inline fun withFont(font: Font = ImGui.defaultFont, block: () -> Unit) {
+    fun withFont(font: Font = ImGui.defaultFont, block: () -> Unit) {
         pushFont(font)
-        try {
+        if (DEBUG) {
+            block()
+            popFont()
+        } else try {
             block()
         } finally {
             popFont()
@@ -127,75 +136,101 @@ object dsl {
             pushStyleColor(idx, col as Vec4)
     }
 
-    inline fun withStyleColor(idx: Col, col: Any, block: () -> Unit) {
+    fun withStyleColor(idx: Col, col: Any, block: () -> Unit) {
         _push(idx, col)
-        try {
+        if (DEBUG) {
+            block()
+            popStyleColor()
+        } else try {
             block()
         } finally {
             popStyleColor()
         }
     }
 
-    inline fun withStyleColor(idx0: Col, col0: Any,
-                              idx1: Col, col1: Any, block: () -> Unit) {
+    fun withStyleColor(
+            idx0: Col, col0: Any,
+            idx1: Col, col1: Any, block: () -> Unit
+    ) {
         _push(idx0, col0)
         _push(idx1, col1)
-        try {
+        if (DEBUG) {
+            block()
+            popStyleColor(2)
+        } else try {
             block()
         } finally {
             popStyleColor(2)
         }
     }
 
-    inline fun withStyleColor(idx0: Col, col0: Any,
-                              idx1: Col, col1: Any,
-                              idx2: Col, col2: Any, block: () -> Unit) {
+    fun withStyleColor(
+            idx0: Col, col0: Any,
+            idx1: Col, col1: Any,
+            idx2: Col, col2: Any, block: () -> Unit
+    ) {
         _push(idx0, col0)
         _push(idx1, col1)
         _push(idx2, col2)
-        try {
+        if (DEBUG) {
+            block()
+            popStyleColor(3)
+        } else try {
             block()
         } finally {
             popStyleColor(3)
         }
     }
 
-    inline fun withStyleColor(idx0: Col, col0: Any,
-                              idx1: Col, col1: Any,
-                              idx2: Col, col2: Any,
-                              idx3: Col, col3: Any,
-                              block: () -> Unit) {
+    fun withStyleColor(
+            idx0: Col, col0: Any,
+            idx1: Col, col1: Any,
+            idx2: Col, col2: Any,
+            idx3: Col, col3: Any,
+            block: () -> Unit
+    ) {
         _push(idx0, col0)
         _push(idx1, col1)
         _push(idx2, col2)
         _push(idx3, col3)
-        try {
+        if (DEBUG) {
+            block()
+            popStyleColor(4)
+        } else try {
             block()
         } finally {
             popStyleColor(4)
         }
     }
 
-    inline fun withStyleColor(idx0: Col, col0: Any,
-                              idx1: Col, col1: Any,
-                              idx2: Col, col2: Any,
-                              idx3: Col, col3: Any,
-                              idx4: Col, col4: Any, block: () -> Unit) {
+    fun withStyleColor(
+            idx0: Col, col0: Any,
+            idx1: Col, col1: Any,
+            idx2: Col, col2: Any,
+            idx3: Col, col3: Any,
+            idx4: Col, col4: Any, block: () -> Unit
+    ) {
         _push(idx0, col0)
         _push(idx1, col1)
         _push(idx2, col2)
         _push(idx3, col3)
         _push(idx4, col4)
-        try {
+        if (DEBUG) {
+            block()
+            popStyleColor(5)
+        } else try {
             block()
         } finally {
             popStyleColor(5)
         }
     }
 
-    inline fun withStyleVar(idx: StyleVar, value: Any, block: () -> Unit) {
+    fun withStyleVar(idx: StyleVar, value: Any, block: () -> Unit) {
         pushStyleVar(idx, value)
-        try {
+        if (DEBUG) {
+            block()
+            popStyleVar()
+        } else try {
             block()
         } finally {
             popStyleVar()
@@ -204,35 +239,44 @@ object dsl {
 
     // Parameters stacks (current window)
 
-    inline fun withItemWidth(itemWidth: Int, block: () -> Unit) = withItemWidth(itemWidth.f, block)
-    inline fun withItemWidth(itemWidth: Float, block: () -> Unit) {
+    fun withItemWidth(itemWidth: Int, block: () -> Unit) = withItemWidth(itemWidth.f, block)
+    fun withItemWidth(itemWidth: Float, block: () -> Unit) {
         pushItemWidth(itemWidth)
-        try {
+        if (DEBUG) {
+            block()
+            popItemWidth()
+        } else try {
             block()
         } finally {
             popItemWidth()
         }
     }
 
-    inline fun withTextWrapPos(wrapPosX: Float = 0f, block: () -> Unit) {
+    fun withTextWrapPos(wrapPosX: Float = 0f, block: () -> Unit) {
         pushTextWrapPos(wrapPosX)
-        try {
+        if (DEBUG) {
+            block()
+            popTextWrapPos()
+        } else try {
             block()
         } finally {
             popTextWrapPos()
         }
     }
 
-    inline fun withAllowKeyboardFocus(allowKeyboardFocus: Boolean, block: () -> Unit) {
+    fun withAllowKeyboardFocus(allowKeyboardFocus: Boolean, block: () -> Unit) {
         pushAllowKeyboardFocus(allowKeyboardFocus)
-        try {
+        if (DEBUG) {
+            block()
+            popAllowKeyboardFocus()
+        } else try {
             block()
         } finally {
             popAllowKeyboardFocus()
         }
     }
 
-    inline fun <R> withButtonRepeat(repeat: Boolean, block: () -> R): R {
+    fun <R> withButtonRepeat(repeat: Boolean, block: () -> R): R {
         pushButtonRepeat(repeat)
         return block().also { popButtonRepeat() }
     }
@@ -240,18 +284,24 @@ object dsl {
 
     // Cursor / Layout
 
-    inline fun indent(indentW: Float = 0f, block: () -> Unit) { // TODO indented?
+    fun indent(indentW: Float = 0f, block: () -> Unit) { // TODO indented?
         indent(indentW)
-        try {
+        if (DEBUG) {
+            block()
+            unindent(indentW)
+        } else try {
             block()
         } finally {
             unindent(indentW)
         }
     }
 
-    inline fun group(block: () -> Unit) {
+    fun group(block: () -> Unit) {
         beginGroup()
-        try {
+        if (DEBUG) {
+            block()
+            endGroup()
+        } else try {
             block()
         } finally {
             endGroup()
@@ -261,27 +311,36 @@ object dsl {
 
     // ID stack/scopes
 
-    inline fun withId(id: Int, block: () -> Unit) {
+    fun withId(id: Int, block: () -> Unit) {
         pushID(id)
-        try {
+        if (DEBUG) {
+            block()
+            popID()
+        } else try {
             block()
         } finally {
             popID()
         }
     }
 
-    inline fun withId(id: String, block: () -> Unit) {
+    fun withId(id: String, block: () -> Unit) {
         pushID(id)
-        try {
+        if (DEBUG) {
+            block()
+            popID()
+        } else try {
             block()
         } finally {
             popID()
         }
     }
 
-    inline fun withId(id: Any, block: () -> Unit) {
+    fun withId(id: Any, block: () -> Unit) {
         pushID(id)
-        try {
+        if (DEBUG) {
+            block()
+            popID()
+        } else try {
             block()
         } finally {
             popID()
@@ -291,48 +350,50 @@ object dsl {
 
     // Widgets: Main
 
-    inline fun button(label: String, sizeArg: Vec2 = Vec2(), block: () -> Unit) {
+    fun button(label: String, sizeArg: Vec2 = Vec2(), block: () -> Unit) {
         if (button(label, sizeArg))
             block()
     }
 
-    inline fun smallButton(label: String, block: () -> Unit) {
+    fun smallButton(label: String, block: () -> Unit) {
         if (smallButton(label))
             block()
     }
 
-    inline fun invisibleButton(strId: String, sizeArg: Vec2, block: () -> Unit) {
+    fun invisibleButton(strId: String, sizeArg: Vec2, block: () -> Unit) {
         if (invisibleButton(strId, sizeArg))
             block()
     }
 
-    inline fun arrowButton(id: String, dir: Dir, block: () -> Unit) {
+    fun arrowButton(id: String, dir: Dir, block: () -> Unit) {
         if (arrowButton(id, dir))
             block()
     }
 
-    inline fun imageButton(userTextureId: TextureID, size: Vec2, uv0: Vec2 = Vec2(), uv1: Vec2 = Vec2(),
-                           framePadding: Int = -1, bgCol: Vec4 = Vec4(), tintCol: Vec4 = Vec4(1), block: () -> Unit) {
+    fun imageButton(
+            userTextureId: TextureID, size: Vec2, uv0: Vec2 = Vec2(), uv1: Vec2 = Vec2(),
+            framePadding: Int = -1, bgCol: Vec4 = Vec4(), tintCol: Vec4 = Vec4(1), block: () -> Unit
+    ) {
         if (imageButton(userTextureId, size, uv0, uv1, framePadding, bgCol, tintCol))
             block()
     }
 
-    inline fun checkbox(label: String, vPtr: KMutableProperty0<Boolean>, block: () -> Unit) {
+    fun checkbox(label: String, vPtr: KMutableProperty0<Boolean>, block: () -> Unit) {
         if (checkbox(label, vPtr))
             block()
     }
 
-    inline fun checkboxFlags(label: String, vPtr: KMutableProperty0<Int>, flagsValue: Int, block: () -> Unit) {
+    fun checkboxFlags(label: String, vPtr: KMutableProperty0<Int>, flagsValue: Int, block: () -> Unit) {
         if (checkboxFlags(label, vPtr, flagsValue))
             block()
     }
 
-    inline fun radioButton(label: String, active: Boolean, block: () -> Unit) {
+    fun radioButton(label: String, active: Boolean, block: () -> Unit) {
         if (radioButton(label, active))
             block()
     }
 
-    inline fun radioButton(label: String, v: KMutableProperty0<Int>, vButton: Int, block: () -> Unit) {
+    fun radioButton(label: String, v: KMutableProperty0<Int>, vButton: Int, block: () -> Unit) {
         if (radioButton(label, v, vButton))
             block()
     }
@@ -341,9 +402,12 @@ object dsl {
     // Widgets: Combo Box
 
 
-    inline fun useCombo(label: String, previewValue: String?, flags: ComboFlags = 0, block: () -> Unit) {
+    fun useCombo(label: String, previewValue: String?, flags: ComboFlags = 0, block: () -> Unit) {
         if (beginCombo(label, previewValue, flags))
-            try {
+            if (DEBUG) {
+                block()
+                endCombo()
+            } else try {
                 block()
             } finally {
                 endCombo()
@@ -352,8 +416,10 @@ object dsl {
             endCombo()
     }
 
-    inline fun combo(label: String, currentItem: KMutableProperty0<Int>, itemsSeparatedByZeros: String, heightInItems: Int = -1,
-                     block: () -> Unit) {
+    fun combo(
+            label: String, currentItem: KMutableProperty0<Int>, itemsSeparatedByZeros: String, heightInItems: Int = -1,
+            block: () -> Unit
+    ) {
         if (combo(label, currentItem, itemsSeparatedByZeros, heightInItems))
             block()
     }
@@ -361,44 +427,53 @@ object dsl {
 
     // Widgets: Trees
 
-    inline fun treeNode(label: String, block: () -> Unit) {
+    fun treeNode(label: String, block: () -> Unit) {
         if (treeNode(label))
-            try {
+            if (DEBUG) {
+                block()
+                treePop()
+            } else try {
                 block()
             } finally {
                 treePop()
             }
     }
 
-    inline fun treeNode(strId: String, fmt: String, block: () -> Unit) {
+    fun treeNode(strId: String, fmt: String, block: () -> Unit) {
         if (treeNode(strId, fmt))
-            try {
+            if (DEBUG) {
+                block()
+                treePop()
+            } else try {
                 block()
             } finally {
                 treePop()
             }
     }
 
-    inline fun treeNode(intPtr: Long, fmt: String, block: () -> Unit) {
+    fun treeNode(intPtr: Long, fmt: String, block: () -> Unit) {
         if (treeNode(intPtr, fmt))
-            try {
+            if (DEBUG) {
+                block()
+                treePop()
+            } else try {
                 block()
             } finally {
                 treePop()
             }
     }
 
-//    inline fun treePushed(intPtr: Long?, block: () -> Unit) { TODO check me
+//     fun treePushed(intPtr: Long?, block: () -> Unit) { TODO check me
 //        treePush(intPtr)
 //        try { block() } finally { treePop() }
 //    }
 
-    inline fun collapsingHeader(label: String, flags: TreeNodeFlags = 0, block: () -> Unit) {
+    fun collapsingHeader(label: String, flags: TreeNodeFlags = 0, block: () -> Unit) {
         if (collapsingHeader(label, flags))
             block()
     }
 
-    inline fun collapsingHeader(label: String, open: KMutableProperty0<Boolean>, flags: TreeNodeFlags = 0, block: () -> Unit) {
+    fun collapsingHeader(label: String, open: KMutableProperty0<Boolean>, flags: TreeNodeFlags = 0, block: () -> Unit) {
         if (collapsingHeader(label, open, flags))
             block()
     }
@@ -406,7 +481,7 @@ object dsl {
 
     // Widgets: Selectables
 
-    inline fun selectable(label: String, selected: Boolean = false, flags: Int = 0, sizeArg: Vec2 = Vec2(), block: () -> Unit) {
+    fun selectable(label: String, selected: Boolean = false, flags: Int = 0, sizeArg: Vec2 = Vec2(), block: () -> Unit) {
         if (selectable(label, selected, flags, sizeArg))
             block()
     }
@@ -414,34 +489,43 @@ object dsl {
 
     // Widgets: Menus
 
-    inline fun mainMenuBar(block: () -> Unit) {
+    fun mainMenuBar(block: () -> Unit) {
         if (beginMainMenuBar())
-            try {
+            if (DEBUG) {
+                block()
+                endMainMenuBar()
+            } else try {
                 block()
             } finally {
                 endMainMenuBar()
             }
     }
 
-    inline fun menuBar(block: () -> Unit) {
+    fun menuBar(block: () -> Unit) {
         if (beginMenuBar())
-            try {
+            if (DEBUG) {
+                block()
+                endMenuBar()
+            } else try {
                 block()
             } finally {
                 endMenuBar()
             }
     }
 
-    inline fun menu(label: String, enabled: Boolean = true, block: () -> Unit) {
+    fun menu(label: String, enabled: Boolean = true, block: () -> Unit) {
         if (beginMenu(label, enabled))
-            try {
+            if (DEBUG) {
+                block()
+                endMenu()
+            } else try {
                 block()
             } finally {
                 endMenu()
             }
     }
 
-    inline fun menuItem(label: String, shortcut: String = "", selected: Boolean = false, enabled: Boolean = true, block: () -> Unit) {
+    fun menuItem(label: String, shortcut: String = "", selected: Boolean = false, enabled: Boolean = true, block: () -> Unit) {
         if (menuItem(label, shortcut, selected, enabled))
             block()
     }
@@ -449,9 +533,12 @@ object dsl {
 
     // Tooltips
 
-    inline fun tooltip(block: () -> Unit) {
+    fun tooltip(block: () -> Unit) {
         beginTooltip()
-        try {
+        if (DEBUG) {
+            block()
+            endTooltip()
+        } else try {
             block()
         } finally {
             endTooltip()
@@ -461,18 +548,24 @@ object dsl {
 
     // Popups, Modals
 
-    inline fun popup(strId: String, flags: WindowFlags = 0, block: () -> Unit) {
+    fun popup(strId: String, flags: WindowFlags = 0, block: () -> Unit) {
         if (beginPopup(strId, flags))
-            try {
+            if (DEBUG) {
+                block()
+                endPopup()
+            } else try {
                 block()
             } finally {
                 endPopup()
             }
     }
 
-    inline fun popupContextItem(strId: String = "", mouseButton: MouseButton = MouseButton.Right, block: () -> Unit) {
+    fun popupContextItem(strId: String = "", mouseButton: MouseButton = MouseButton.Right, block: () -> Unit) {
         if (beginPopupContextItem(strId, mouseButton)) {
-            try {
+            if (DEBUG) {
+                block()
+                endPopup()
+            } else try {
                 block()
             } finally {
                 endPopup()
@@ -480,28 +573,39 @@ object dsl {
         }
     }
 
-    inline fun popupContextWindow(strId: String = "", mouseButton: MouseButton = MouseButton.Right,
-                                  alsoOverItems: Boolean = true, block: () -> Unit) {
+    fun popupContextWindow(
+            strId: String = "", mouseButton: MouseButton = MouseButton.Right,
+            alsoOverItems: Boolean = true, block: () -> Unit
+    ) {
         if (beginPopupContextWindow(strId, mouseButton, alsoOverItems))
-            try {
+            if (DEBUG) {
+                block()
+                endPopup()
+            } else try {
                 block()
             } finally {
                 endPopup()
             }
     }
 
-    inline fun popupContextVoid(strId: String = "", mouseButton: MouseButton = MouseButton.Right, block: () -> Unit) {
+    fun popupContextVoid(strId: String = "", mouseButton: MouseButton = MouseButton.Right, block: () -> Unit) {
         if (beginPopupContextVoid(strId, mouseButton))
-            try {
+            if (DEBUG) {
+                block()
+                endPopup()
+            } else try {
                 block()
             } finally {
                 endPopup()
             }
     }
 
-    inline fun popupModal(name: String, pOpen: KMutableProperty0<Boolean>? = null, extraFlags: WindowFlags = 0, block: () -> Unit) {
+    fun popupModal(name: String, pOpen: KMutableProperty0<Boolean>? = null, extraFlags: WindowFlags = 0, block: () -> Unit) {
         if (beginPopupModal(name, pOpen, extraFlags))
-            try {
+            if (DEBUG) {
+                block()
+                endPopup()
+            } else try {
                 block()
             } finally {
                 endPopup()
@@ -511,18 +615,24 @@ object dsl {
 
     // Tab Bars, Tabs
 
-    inline fun tabBar(strId: String, flags: TabBarFlags = 0, block: () -> Unit) {
+    fun tabBar(strId: String, flags: TabBarFlags = 0, block: () -> Unit) {
         if (beginTabBar(strId, flags))
-            try {
+            if (DEBUG) {
+                block()
+                endTabBar()
+            } else try {
                 block()
             } finally {
                 endTabBar()
             }
     }
 
-    inline fun tabItem(label: String, pOpen: KMutableProperty0<Boolean>? = null, flags: TabItemFlags = 0, block: () -> Unit) {
+    fun tabItem(label: String, pOpen: KMutableProperty0<Boolean>? = null, flags: TabItemFlags = 0, block: () -> Unit) {
         if (beginTabItem(label, pOpen, flags))
-            try {
+            if (DEBUG) {
+                block()
+                endTabItem()
+            } else try {
                 block()
             } finally {
                 endTabItem()
@@ -532,18 +642,24 @@ object dsl {
 
     // Drag and Drop
 
-    inline fun dragDropSource(flags: DragDropFlags = 0, block: () -> Unit) {
+    fun dragDropSource(flags: DragDropFlags = 0, block: () -> Unit) {
         if (beginDragDropSource(flags))
-            try {
+            if (DEBUG) {
+                block()
+                endDragDropSource()
+            } else try {
                 block()
             } finally {
                 endDragDropSource()
             }
     }
 
-    inline fun dragDropTarget(block: () -> Unit) {
+    fun dragDropTarget(block: () -> Unit) {
         if (beginDragDropTarget())
-            try {
+            if (DEBUG) {
+                block()
+                endDragDropTarget()
+            } else try {
                 block()
             } finally {
                 endDragDropTarget()
@@ -553,9 +669,12 @@ object dsl {
 
     // Clipping
 
-    inline fun withClipRect(clipRectMin: Vec2, clipRectMax: Vec2, intersectWithCurrentClipRect: Boolean, block: () -> Unit) {
+    fun withClipRect(clipRectMin: Vec2, clipRectMax: Vec2, intersectWithCurrentClipRect: Boolean, block: () -> Unit) {
         pushClipRect(clipRectMin, clipRectMax, intersectWithCurrentClipRect)
-        try {
+        if (DEBUG) {
+            block()
+            popClipRect()
+        } else try {
             block()
         } finally {
             popClipRect()
@@ -565,9 +684,12 @@ object dsl {
 
     // Miscellaneous Utilities
 
-    inline fun childFrame(id: ID, size: Vec2, extraFlags: WindowFlags = 0, block: () -> Unit) {
+    fun childFrame(id: ID, size: Vec2, extraFlags: WindowFlags = 0, block: () -> Unit) {
         beginChildFrame(id, size, extraFlags)
-        try {
+        if (DEBUG) {
+            block()
+            endChildFrame()
+        } else try {
             block()
         } finally {
             endChildFrame()
@@ -576,10 +698,15 @@ object dsl {
 
     // Columns TODO -> jDsl
 
-    inline fun columns(strId: String = "", columnsCount: Int,
-                       flags: ColumnsFlags = ColumnsFlag.None.i, block: () -> Unit) {
+    fun columns(
+            strId: String = "", columnsCount: Int,
+            flags: ColumnsFlags = ColumnsFlag.None.i, block: () -> Unit
+    ) {
         beginColumns(strId, columnsCount, flags)
-        try {
+        if (DEBUG) {
+            block()
+            endColumns()
+        } else try {
             block()
         } finally {
             endColumns()
@@ -588,9 +715,12 @@ object dsl {
 
     // Columns TODO -> jDsl, TODO others
 
-    inline fun listBox(label: String, sizeArg: Vec2 = Vec2(), block: () -> Unit) {
+    fun listBox(label: String, sizeArg: Vec2 = Vec2(), block: () -> Unit) {
         if (listBoxHeader(label, sizeArg))
-            try {
+            if (DEBUG) {
+                block()
+                listBoxFooter()
+            } else try {
                 block()
             } finally {
                 listBoxFooter()
@@ -599,13 +729,19 @@ object dsl {
 
     // tables
 
-    inline fun table(strId: String, columnsCount: Int, flags: TableFlags = TableFlag.None.i, outerSize: Vec2 = Vec2(),
-                     innerWidth: Float = 0f, block: () -> Unit) {
-        if(beginTable(strId, columnsCount, flags, outerSize, innerWidth))
-            try {
+    fun table(
+            strId: String, columnsCount: Int, flags: TableFlags = TableFlag.None.i, outerSize: Vec2 = Vec2(),
+            innerWidth: Float = 0f, block: () -> Unit
+    ) {
+        if (beginTable(strId, columnsCount, flags, outerSize, innerWidth))
+            if (DEBUG) {
                 block()
-            } finally {
                 endTable()
-            }
+            } else
+                try {
+                    block()
+                } finally {
+                    endTable()
+                }
     }
 }

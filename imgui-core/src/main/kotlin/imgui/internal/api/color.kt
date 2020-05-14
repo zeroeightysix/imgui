@@ -149,7 +149,7 @@ internal interface color {
         if (allowOptAlphaBar) {
             if (allowOptPicker) separator()
             val pI = intArrayOf(g.colorEditOptions)
-            checkboxFlags("Alpha Bar", pI, Cef.AlphaBar.i)
+            checkboxFlags("Alpha Bar", pI, 0, Cef.AlphaBar.i)
             g.colorEditOptions = pI[0]
         }
         endPopup()
