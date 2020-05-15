@@ -606,7 +606,7 @@ interface tables {
         var ellipsisMax = workR.max.x
 
         // Selectable
-        pushID(label)
+        pushID(label_)
 
         // FIXME-TABLE: Fix when padding are disabled.
         //window->DC.CursorPos.x = column->MinX + table->CellPadding.x;
@@ -671,6 +671,8 @@ interface tables {
                 window.drawList.renderArrow(Vec2(x, y), col, if (column.sortDirection == SortDirection.Ascending) Dir.Up else Dir.Down, ARROW_SCALE)
             }
 
+            if(pressed)
+                println()
             // Handle clicking on column header to adjust Sort Order
             if (pressed && table.reorderColumn != columnN)
                 tableSortSpecsClickColumn(table, column, io.keyShift)

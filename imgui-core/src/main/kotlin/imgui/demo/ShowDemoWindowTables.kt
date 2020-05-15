@@ -21,21 +21,29 @@ import imgui.ImGui.pushID
 import imgui.ImGui.pushStyleColor
 import imgui.ImGui.pushStyleVar
 import imgui.ImGui.sameLine
+import imgui.ImGui.selectable
 import imgui.ImGui.separator
 import imgui.ImGui.setNextItemOpen
 import imgui.ImGui.setNextItemWidth
+import imgui.ImGui.smallButton
 import imgui.ImGui.style
 import imgui.ImGui.tableAutoHeaders
 import imgui.ImGui.tableGetColumnName
+import imgui.ImGui.tableGetSortSpecs
+import imgui.ImGui.tableHeader
 import imgui.ImGui.tableNextCell
 import imgui.ImGui.tableNextRow
 import imgui.ImGui.tableSetColumnIndex
 import imgui.ImGui.tableSetupColumn
 import imgui.ImGui.text
+import imgui.ImGui.textDisabled
 import imgui.ImGui.textUnformatted
+import imgui.ImGui.treeNodeEx
+import imgui.ImGui.treePop
 import imgui.ImGui.unindent
 import imgui.api.demoDebugInformations.Companion.helpMarker
 import imgui.classes.ListClipper
+import imgui.classes.TableSortSpecs
 import imgui.dsl.table
 import imgui.dsl.treeNode
 import imgui.TableColumnFlag as Tcf
@@ -133,198 +141,24 @@ object ShowDemoWindowTables {
             setNextItemOpen(openAction != 0)
         rowHeight()
 
+
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        treeView()
+
+        // Demonstrate using TableHeader() calls instead of TableAutoHeaders()
+        // FIXME-TABLE: Currently this doesn't get us feature-parity with TableAutoHeaders(), e.g. missing context menu.  Tables API needs some work!
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        customHeaders()
+
+        // This is a simplified version of the "Advanced" example, where we mostly focus on the code necessary to handle sorting.
+        // Note that the "Advanced" example also showcase manually triggering a sort (e.g. if item quantities have been modified)
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        sorting()
+
 /*
-            if (openAction != -1)
-                ImGui::SetNextItemOpen(open_action != 0)
-            if (ImGui::TreeNode("Tree view")) {
-                static ImGuiTableFlags flags = ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersHOuter | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg
-                //ImGui::CheckboxFlags("ImGuiTableFlags_Scroll", (unsigned int*)&flags, ImGuiTableFlags_Scroll);
-                //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeLeftColumn", (unsigned int*)&flags, ImGuiTableFlags_ScrollFreezeLeftColumn);
-
-                if (ImGui::BeginTable("##3ways", 3, flags)) {
-                    // The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX is On
-                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide)
-                    ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 6)
-                    ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFontSize() * 10)
-                    ImGui::TableAutoHeaders()
-
-                    // Simple storage to output a dummy file-system.
-                    struct MyTreeNode
-                            {
-                                const char * Name
-                                        const char * Type
-                                        int Size
-                                        int ChildIdx
-                                        int ChildCount
-                                        static void DisplayNode(const MyTreeNode * node, const MyTreeNode * all_nodes)
-                                {
-                                    ImGui::TableNextRow()
-                                    const bool is_folder = (node->ChildCount > 0)
-                                    if (is_folder) {
-                                        bool open = ImGui ::TreeNodeEx(node->Name, ImGuiTreeNodeFlags_SpanFullWidth)
-                                        ImGui::TableNextCell()
-                                        ImGui::TextDisabled("--")
-                                        ImGui::TableNextCell()
-                                        ImGui::TextUnformatted(node->Type)
-                                        if (open) {
-                                            for (int child_n = 0; child_n < node->ChildCount; child_n++)
-                                            DisplayNode(& all_nodes [node->ChildIdx+child_n], all_nodes)
-                                            ImGui::TreePop()
-                                        }
-                                    } else {
-                                        ImGui::TreeNodeEx(node->Name, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth)
-                                        ImGui::TableNextCell()
-                                        ImGui::Text("%d", node->Size)
-                                        ImGui::TableNextCell()
-                                        ImGui::TextUnformatted(node->Type)
-                                    }
-                                }
-                            }
-                    static const MyTreeNode nodes [] =
-                            {
-                                { "Root", "Folder", -1, 1, 3 }, // 0
-                                { "Music", "Folder", -1, 4, 2 }, // 1
-                                { "Textures", "Folder", -1, 6, 3 }, // 2
-                                { "desktop.ini", "System file", 1024, -1, -1 }, // 3
-                                { "File1_a.wav", "Audio file", 123000, -1, -1 }, // 4
-                                { "File1_b.wav", "Audio file", 456000, -1, -1 }, // 5
-                                { "Image001.png", "Image file", 203128, -1, -1 }, // 6
-                                { "Copy of Image001.png", "Image file", 203256, -1, -1 }, // 7
-                                { "Copy of Image001 (Final2).png", "Image file", 203512, -1, -1 }, // 8
-                            }
-
-                    MyTreeNode::DisplayNode(& nodes [0], nodes)
-
-                    ImGui::EndTable()
-                }
-                ImGui::TreePop()
-            }
-
-            // Demonstrate using TableHeader() calls instead of TableAutoHeaders()
-            // FIXME-TABLE: Currently this doesn't get us feature-parity with TableAutoHeaders(), e.g. missing context menu.  Tables API needs some work!
-            if (openAction != -1)
-                ImGui::SetNextItemOpen(open_action != 0)
-            if (ImGui::TreeNode("Custom headers")) {
-                const int COLUMNS_COUNT = 3
-                if (ImGui::BeginTable("##table1", COLUMNS_COUNT, ImGuiTableFlags_Borders | ImGuiTableFlags_Reorderable))
-                {
-                    ImGui::TableSetupColumn("Apricot")
-                    ImGui::TableSetupColumn("Banana")
-                    ImGui::TableSetupColumn("Cherry")
-
-                    // Dummy entire-column selection storage
-                    // FIXME: It would be nice to actually demonstrate full-featured selection using those checkbox.
-                    static bool column_selected[3] = {}
-
-                    // Instead of calling TableAutoHeaders() we'll submit custom headers ourselves
-                    ImGui::TableNextRow(ImGuiTableRowFlags_Headers)
-                    for (int column = 0; column < COLUMNS_COUNT; column++)
-                    {
-                        ImGui::TableSetColumnIndex(column)
-                        const char * column_name = ImGui ::TableGetColumnName(column) // Retrieve name passed to TableSetupColumn()
-                        ImGui::PushID(column)
-                        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0))
-                        ImGui::Checkbox("##checkall", & column_selected [column])
-                        ImGui::PopStyleVar()
-                        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x)
-                        ImGui::TableHeader(column_name)
-                        ImGui::PopID()
-                    }
-
-                    for (int row = 0; row < 5; row++)
-                    {
-                        ImGui::TableNextRow()
-                        for (int column = 0; column < 3; column++)
-                        {
-                            char buf [32]
-                            sprintf(buf, "Cell %d,%d", row, column)
-                            ImGui::TableSetColumnIndex(column)
-                            ImGui::Selectable(buf, column_selected[column])
-                        }
-                    }
-                    ImGui::EndTable()
-                }
-                ImGui::TreePop()
-            }
-
-            static const char * template_items_names[] =
-                    {
-                        "Banana", "Apple", "Cherry", "Watermelon", "Grapefruit", "Strawberry", "Mango",
-                        "Kiwi", "Orange", "Pineapple", "Blueberry", "Plum", "Coconut", "Pear", "Apricot"
-                    }
-
-            // This is a simplified version of the "Advanced" example, where we mostly focus on the code necessary to handle sorting.
-            // Note that the "Advanced" example also showcase manually triggering a sort (e.g. if item quantities have been modified)
-            if (openAction != -1)
-                ImGui::SetNextItemOpen(open_action != 0)
-            if (ImGui::TreeNode("Sorting")) {
-                HelpMarker("Use Shift+Click to sort on multiple columns")
-
-                // Create item list
-                static ImVector < MyItem > items
-                        if (items.Size == 0) {
-                            items.resize(50, MyItem())
-                            for (int n = 0; n < items.Size; n++)
-                            {
-                                const int template_n = n % IM_ARRAYSIZE(template_items_names)
-                                MyItem& item = items[n]
-                                item.ID = n
-                                item.Name = template_items_names[template_n]
-                                item.Quantity = (n * n - n) % 20 // Assign default quantities
-                            }
-                        }
-
-                static ImGuiTableFlags flags =
-                        ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_MultiSortable
-                | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
-                | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollFreezeTopRow
-                if (ImGui::BeginTable("##table", 4, flags, ImVec2(0, 250), 0.0f)) {
-                    // Declare columns
-                    // We use the "user_id" parameter of TableSetupColumn() to specify a user id that will be stored in the sort specifications.
-                    // This is so our sort function can identify a column given our own identifier. We could also identify them based on their index!
-                    // Demonstrate using a mixture of flags among available sort-related flags:
-                    // - ImGuiTableColumnFlags_DefaultSort
-                    // - ImGuiTableColumnFlags_NoSort / ImGuiTableColumnFlags_NoSortAscending / ImGuiTableColumnFlags_NoSortDescending
-                    // - ImGuiTableColumnFlags_PreferSortAscending / ImGuiTableColumnFlags_PreferSortDescending
-                    ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_DefaultSort          | ImGuiTableColumnFlags_WidthFixed, -1.0f, MyItemColumnID_ID)
-                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, -1.0f, MyItemColumnID_Name)
-                    ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_NoSort               | ImGuiTableColumnFlags_WidthFixed, -1.0f, MyItemColumnID_Action)
-                    ImGui::TableSetupColumn("Quantity", ImGuiTableColumnFlags_PreferSortDescending | ImGuiTableColumnFlags_WidthStretch, -1.0f, MyItemColumnID_Quantity)
-
-                    // Sort our data if sort specs have been changed!
-                    if (const ImGuiTableSortSpecs * sorts_specs = ImGui ::TableGetSortSpecs())
-                        if (sorts_specs->SpecsChanged && items.Size > 1)
-                    {
-                        MyItem::s_current_sort_specs = sorts_specs // Store in variable accessible by the sort function.
-                        qsort(& items [0], (size_t)items.Size, sizeof(items[0]), MyItem::CompareWithSortSpecs)
-                        MyItem::s_current_sort_specs = NULL
-                    }
-
-                    // Display data
-                    ImGui::TableAutoHeaders()
-                    ImGuiListClipper clipper
-                            clipper.Begin(items.Size)
-                    while (clipper.Step())
-                        for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
-                    {
-                        MyItem * item = & items [row_n]
-                        ImGui::PushID(item->ID)
-                        ImGui::TableNextRow()
-                        ImGui::TableSetColumnIndex(0)
-                        ImGui::Text("%04d", item->ID)
-                        ImGui::TableSetColumnIndex(1)
-                        ImGui::TextUnformatted(item->Name)
-                        ImGui::TableSetColumnIndex(2)
-                        ImGui::SmallButton("None")
-                        ImGui::TableSetColumnIndex(3)
-                        ImGui::Text("%d", item->Quantity)
-                        ImGui::PopID()
-                    }
-                    ImGui::EndTable()
-                }
-                ImGui::TreePop()
-            }
-
             if (openAction != -1)
                 ImGui::SetNextItemOpen(open_action != 0)
             if (ImGui::TreeNode("Advanced")) {
@@ -1034,6 +868,206 @@ object ShowDemoWindowTables {
                 tableNextRow(TableRowFlag.None.i, minRowHeight)
                 text("min_row_height = %.2f", minRowHeight)
             }
+        }
+    }
+
+    var flags10 = Tf.BordersV or Tf.BordersHOuter or Tf.Resizable or Tf.RowBg
+
+    // Simple storage to output a dummy file-system.
+    class MyTreeNode(val name: String, val type: String, val size: Int, val childIdx: Int, val childCount: Int) {
+        fun displayNode() {
+            tableNextRow()
+            val isFolder = childCount > 0
+            if (isFolder) {
+                val open = treeNodeEx(name, TreeNodeFlag.SpanFullWidth.i)
+                tableNextCell()
+                textDisabled("--")
+                tableNextCell()
+                textUnformatted(type)
+                if (open) {
+                    for (childN in 0 until childCount)
+                        nodes[childIdx + childN].displayNode()
+                    treePop()
+                }
+            } else {
+                treeNodeEx(name, TreeNodeFlag.Leaf or TreeNodeFlag.Bullet or TreeNodeFlag.NoTreePushOnOpen or TreeNodeFlag.SpanFullWidth)
+                tableNextCell()
+                text("$size")
+                tableNextCell()
+                textUnformatted(type)
+            }
+        }
+    }
+
+    val nodes = arrayOf(
+            MyTreeNode("Root", "Folder", -1, 1, 3), // 0
+            MyTreeNode("Music", "Folder", -1, 4, 2), // 1
+            MyTreeNode("Textures", "Folder", -1, 6, 3), // 2
+            MyTreeNode("desktop.ini", "System file", 1024, -1, -1), // 3
+            MyTreeNode("File1_a.wav", "Audio file", 123000, -1, -1), // 4
+            MyTreeNode("File1_b.wav", "Audio file", 456000, -1, -1), // 5
+            MyTreeNode("Image001.png", "Image file", 203128, -1, -1), // 6
+            MyTreeNode("Copy of Image001.png", "Image file", 203256, -1, -1), // 7
+            MyTreeNode("Copy of Image001 (Final2).png", "Image file", 203512, -1, -1)) // 8
+
+    fun treeView() = treeNode("Tree view") {
+
+        //ImGui::CheckboxFlags("ImGuiTableFlags_Scroll", (unsigned int*)&flags, ImGuiTableFlags_Scroll);
+        //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeLeftColumn", (unsigned int*)&flags, ImGuiTableFlags_ScrollFreezeLeftColumn);
+
+        table("##3ways", 3, flags10) {
+            // The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX is On
+            tableSetupColumn("Name", Tcf.NoHide.i)
+            tableSetupColumn("Size", Tcf.WidthFixed.i, ImGui.fontSize * 6)
+            tableSetupColumn("Type", Tcf.WidthFixed.i, ImGui.fontSize * 10)
+            tableAutoHeaders()
+
+            nodes[0].displayNode()
+        }
+    }
+
+
+    val COLUMNS_COUNT = 3
+    val columnSelected = BooleanArray(COLUMNS_COUNT)
+    fun customHeaders() = treeNode("Custom headers") {
+
+        table("##table1", COLUMNS_COUNT, Tf.Borders or Tf.Reorderable) {
+            tableSetupColumn("Apricot")
+            tableSetupColumn("Banana")
+            tableSetupColumn("Cherry")
+
+            // Dummy entire-column selection storage
+            // FIXME: It would be nice to actually demonstrate full-featured selection using those checkbox.
+
+
+            // Instead of calling TableAutoHeaders() we'll submit custom headers ourselves
+            tableNextRow(TableRowFlag.Headers.i)
+            for (column in 0 until COLUMNS_COUNT) {
+                tableSetColumnIndex(column)
+                val columnName = tableGetColumnName(column)!! // Retrieve name passed to TableSetupColumn()
+                pushID(column)
+                pushStyleVar(StyleVar.FramePadding, Vec2())
+                checkbox("##checkall", columnSelected, column)
+                popStyleVar()
+                sameLine(0f, style.itemInnerSpacing.x)
+                tableHeader(columnName)
+                popID()
+            }
+
+            for (row in 0..4) {
+                tableNextRow()
+                for (column in 0 until COLUMNS_COUNT) {
+                    val buf = "Cell $row,$column"
+                    tableSetColumnIndex(column)
+                    selectable(buf, columnSelected, column)
+                }
+            }
+        }
+    }
+
+
+    val templateItemsNames = arrayOf(
+            "Banana", "Apple", "Cherry", "Watermelon", "Grapefruit", "Strawberry", "Mango",
+            "Kiwi", "Orange", "Pineapple", "Blueberry", "Plum", "Coconut", "Pear", "Apricot")
+
+    // We are passing our own identifier to TableSetupColumn() to facilitate identifying columns in the sorting code.
+    // This identifier will be passed down into ImGuiTableSortSpec::ColumnUserID.
+    // But it is possible to omit the user id parameter of TableSetupColumn() and just use the column index instead! (ImGuiTableSortSpec::ColumnIndex)
+    // If you don't use sorting, you will generally never care about giving column an ID!
+    enum class MyItemColumnID { ID, Name, Action, Quantity, Description }
+
+    data class MyItem(val id: Int, val name: String, val quantity: Int)
+
+    // We have a problem which is affecting _only this demo_ and should not affect your code:
+    // As we don't rely on std:: or other third-party library to compile dear imgui, we only have reliable access to qsort(),
+    // however qsort doesn't allow passing user data to comparing function.
+    // As a workaround, we are storing the sort specs in a static/global for the comparing function to access.
+    // In your own use case you would probably pass the sort specs to your sorting/comparing functions directly and not use a global.
+    var sCurrentSortSpecs: TableSortSpecs? = null
+    val compareWithSortSpecs = Comparator<MyItem> { a, b ->
+
+        var result = a.id - b.id
+        // Compare function to be used by qsort()
+        for (sortSpec in sCurrentSortSpecs!!.specs!!) {
+            // Here we identify columns using the ColumnUserID value that we ourselves passed to TableSetupColumn()
+            // We could also choose to identify columns based on their index (sort_spec->ColumnIndex), which is simpler!
+            val delta = when (MyItemColumnID.values()[sortSpec.columnUserID]) {
+                MyItemColumnID.ID -> a.id - b.id
+                MyItemColumnID.Name -> a.name.compareTo(b.name)
+                MyItemColumnID.Quantity -> a.quantity - b.quantity
+                MyItemColumnID.Description -> a.name.compareTo(b.name)
+                else -> error("")
+            }
+            if (delta > 0) {
+                result = if (sortSpec.sortDirection == SortDirection.Ascending) +1 else -1
+                break
+            }
+            if (delta < 0) {
+                result = if (sortSpec.sortDirection == SortDirection.Ascending) -1 else +1
+                break
+            }
+        }
+
+        // qsort() is instable so always return a way to differenciate items.
+        // Your own compare function may want to avoid fallback on implicit sort specs e.g. a Name compare if it wasn't already part of the sort specs.
+        result
+    }
+//    const ImGuiTableSortSpecs* MyItem::s_current_sort_specs = NULL;
+
+    // Create item list
+    val items = Array(50) { n ->
+        val templateN = n % templateItemsNames.size
+        MyItem(id = n,
+                name = templateItemsNames[templateN],
+                quantity = (n * n - n) % 20) // Assign default quantities
+    }
+    var flags11 = Tf.Resizable or Tf.Reorderable or Tf.Hideable or Tf.MultiSortable or Tf.RowBg or Tf.BordersOuter or Tf.BordersV or Tf.ScrollY or Tf.ScrollFreezeTopRow
+
+    fun sorting() = treeNode("Sorting") {
+
+        helpMarker("Use Shift+Click to sort on multiple columns")
+
+        table("##table", 4, flags11, Vec2(0f, 250f), 0f) {
+            // Declare columns
+            // We use the "user_id" parameter of TableSetupColumn() to specify a user id that will be stored in the sort specifications.
+            // This is so our sort function can identify a column given our own identifier. We could also identify them based on their index!
+            // Demonstrate using a mixture of flags among available sort-related flags:
+            // - ImGuiTableColumnFlags_DefaultSort
+            // - ImGuiTableColumnFlags_NoSort / ImGuiTableColumnFlags_NoSortAscending / ImGuiTableColumnFlags_NoSortDescending
+            // - ImGuiTableColumnFlags_PreferSortAscending / ImGuiTableColumnFlags_PreferSortDescending
+            tableSetupColumn("ID", Tcf.DefaultSort or Tcf.WidthFixed, -1f, MyItemColumnID.ID.ordinal)
+            tableSetupColumn("Name", Tcf.WidthFixed.i, -1f, MyItemColumnID.Name.ordinal)
+            tableSetupColumn("Action", Tcf.NoSort or Tcf.WidthFixed, -1f, MyItemColumnID.Action.ordinal)
+            tableSetupColumn("Quantity", Tcf.PreferSortDescending or Tcf.WidthStretch, -1f, MyItemColumnID.Quantity.ordinal)
+
+            // Sort our data if sort specs have been changed!
+            tableGetSortSpecs()?.let { sortsSpecs ->
+                if (sortsSpecs.specsChanged && items.size > 1) {
+                    sCurrentSortSpecs = sortsSpecs // Store in variable accessible by the sort function.
+                    items.sortWith(compareWithSortSpecs)
+                    sCurrentSortSpecs = null
+                }
+            }
+
+            // Display data
+            tableAutoHeaders()
+            val clipper = ListClipper()
+            clipper.begin(items.size)
+            while (clipper.step())
+                for (rowN in clipper.display) {
+                    val item = items[rowN]
+                    pushID(item.id)
+                    tableNextRow()
+                    tableSetColumnIndex(0)
+                    text("%04d".format(item.id))
+                    tableSetColumnIndex(1)
+                    textUnformatted(item.name)
+                    tableSetColumnIndex(2)
+                    smallButton("None")
+                    tableSetColumnIndex(3)
+                    text("%d", item.quantity)
+                    popID()
+                }
         }
     }
 }
