@@ -252,7 +252,7 @@ interface demoDebugInformations {
                 g.navWindow?.let { nav ->
                     for (tableN in 0 until g.tables.size) {
                         val table = g.tables[tableN]!!
-                        if (table.lastFrameActive < g.frameCount - 1 || table.outerWindow !== nav)
+                        if (table.lastFrameActive < g.frameCount - 1 || (table.outerWindow !== nav && table.innerWindow !== g.navWindow))
                             continue
 
                         bulletText("Table 0x%08X (${table.columnsCount} columns, in '${table.outerWindow!!.name}')".format(table.id))
@@ -525,7 +525,7 @@ interface demoDebugInformations {
 
         /** Tables Rect Type */
         enum class TRT {
-            OuterRect, WorkRect, HostClipRect, InnerClipRect, BackgroundClipRect, ColumnsRect, ColumnsClipRect, ColumnsContentHeadersUsed, ColumnsContentHeadersDesired, ColumnsContentRowsFrozen, ColumnsContentRowsUnfrozen;
+            OuterRect, WorkRect, HostClipRect, InnerClipRect, BackgroundClipRect, ColumnsRect, ColumnsClipRect, ColumnsContentHeadersUsed, ColumnsContentHeadersIdeal, ColumnsContentRowsFrozen, ColumnsContentRowsUnfrozen;
 
             companion object {
                 val names = values().map { it.name }
@@ -565,7 +565,7 @@ interface demoDebugInformations {
                 TRT.ColumnsRect -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.maxX, table.innerClipRect.min.y + table.lastOuterHeight) }
                 TRT.ColumnsClipRect -> Rect(table.columns[n]!!.clipRect)
                 TRT.ColumnsContentHeadersUsed -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthHeadersUsed, table.innerClipRect.min.y + table.lastFirstRowHeight) }    // Note: y1/y2 not always accurate
-                TRT.ColumnsContentHeadersDesired -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthHeadersDesired, table.innerClipRect.min.y + table.lastFirstRowHeight) } // "
+                TRT.ColumnsContentHeadersIdeal -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthHeadersIdeal, table.innerClipRect.min.y + table.lastFirstRowHeight) } // "
                 TRT.ColumnsContentRowsFrozen -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y, c.minX + c.contentWidthRowsFrozen, table.innerClipRect.min.y + table.lastFirstRowHeight) }     // "
                 TRT.ColumnsContentRowsUnfrozen -> table.columns[n]!!.let { c -> Rect(c.minX, table.innerClipRect.min.y + table.lastFirstRowHeight, c.minX + c.contentWidthRowsUnfrozen, table.innerClipRect.max.y) }   // "
             }
@@ -821,7 +821,7 @@ interface demoDebugInformations {
                     val columnSettings = settings.columnSettings[n]
                     val sortDir = if (columnSettings.sortOrder != -1) columnSettings.sortDirection else SortDirection.None
                     val ord = if (sortDir == SortDirection.Ascending) "Asc" else if (sortDir == SortDirection.Descending) "Des" else "---"
-                    bulletText("Column $n Order ${columnSettings.displayOrder} SortOrder ${columnSettings.sortOrder} $ord " +
+                    bulletText("Column $n Order ${columnSettings.displayOrder} SortOrder %2d $ord ".format(columnSettings.sortOrder) +
                             "Visible ${columnSettings.visible} UserID 0x%08X WidthOrWeight %.3f".format(columnSettings.userID, columnSettings.widthOrWeight))
                 }
                 treePop()
@@ -834,13 +834,14 @@ interface demoDebugInformations {
                 if (ImGui.isItemHovered())
                     ImGui.foregroundDrawList.addRect(table.outerRect.min, table.outerRect.max, COL32(255, 255, 0, 255))
                 if (open) {
+                    bulletText("OuterWidth: %.1f, InnerWidth: %.1f${if(table.innerWidth == 0f) " (auto)" else ""}, IdealWidth: %.1f", table.outerRect.width, table.innerWidth, table.idealTotalWidth)
                     for (n in 0 until table.columnsCount) {
                         val column = table.columns[n]!!
                         val name = tableGetColumnName(table, n)
                         bulletText("Column $n order ${column.displayOrder} name '$name': +%.1f to +%.1f\n".format(column.minX - table.workRect.min.x, column.maxX - table.workRect.min.x) +
                                 "Active: ${column.isActive.i}, Clipped: ${column.isClipped.i}, DrawChannels: ${column.drawChannelRowsBeforeFreeze},${column.drawChannelRowsAfterFreeze}\n" +
                                 "WidthGiven/Requested: %.1f/%.1f, Weight: %.2f\n".format(column.widthGiven, column.widthRequested, column.resizeWeight) +
-                                "ContentWidth: RowsFrozen ${column.contentWidthRowsFrozen}, RowsUnfrozen ${column.contentWidthRowsUnfrozen}, HeadersUsed/Desired ${column.contentWidthHeadersUsed}/${column.contentWidthHeadersDesired}\n" +
+                                "ContentWidth: RowsFrozen ${column.contentWidthRowsFrozen}, RowsUnfrozen ${column.contentWidthRowsUnfrozen}, HeadersUsed/Ideal ${column.contentWidthHeadersUsed}/${column.contentWidthHeadersIdeal}\n" +
                                 "SortOrder: ${column.sortOrder}, SortDir: ${if (column.sortDirection == SortDirection.Ascending) "Ascending" else if (column.sortDirection == SortDirection.Descending) "Descending" else "None"}\n" +
                                 "UserID: 0x%08X, Flags: 0x%04X: ".format(column.userID, column.flags) +
                                 "${if (column.flags has TableColumnFlag.WidthFixed) "WidthFixed " else ""}${if (column.flags has TableColumnFlag.WidthStretch) "WidthStretch " else ""}" +

@@ -155,7 +155,10 @@ class Table {
     /** Height of first row from last frame */
     var lastFirstRowHeight = 0f
     var columnsTotalWidth = 0f
+    /** User value passed to BeginTable(), see comments at the top of BeginTable() for details. */
     var innerWidth = 0f
+    /** Sum of ideal column width for nothing to be clipped */
+    var idealTotalWidth = 0f
     var resizedColumnNextWidth = 0f
 
     // Note: OuterRect.Max.y is often FLT_MAX until EndTable(), unless a height has been specified in BeginTable().
@@ -640,13 +643,13 @@ class TableColumn {
     /** (kept as float because we need to manipulate those between each cell change)*/
     var contentMaxPosRowsUnfrozen = 0f
     var contentMaxPosHeadersUsed = 0f
-    var contentMaxPosHeadersDesired = 0f
+    var contentMaxPosHeadersIdeal = 0f
 
     /*
     [0] =   ImS16                   ContentWidthRowsFrozen
             ImS16                   ContentWidthRowsUnfrozen
             ImS16                   ContentWidthHeadersUsed
-            ImS16                   ContentWidthHeadersDesired
+            ImS16                   ContentWidthHeadersIdeal
 
     [1] =   ImS16                   NameOffset
             bool                    IsActive
@@ -689,7 +692,7 @@ class TableColumn {
             longs[0] = (longs[0] and 0xffff_ffff_0000_ffffUL) or ((value.L and 0xffff) shl 16)
         }
 
-    var contentWidthHeadersDesired: Int
+    var contentWidthHeadersIdeal: Int
         get() = longs[0].s.i
         set(value) {
             longs[0] = (longs[0] and 0xffff_ffff_ffff_0000UL) or (value.L and 0xffff)
@@ -851,7 +854,7 @@ class TableColumn {
         contentWidthRowsFrozen=$contentWidthRowsFrozen
         contentWidthRowsUnfrozen=$contentWidthRowsUnfrozen
         contentWidthHeadersUsed=$contentWidthHeadersUsed
-        contentWidthHeadersDesired=$contentWidthHeadersDesired
+        contentWidthHeadersIdeal=$contentWidthHeadersIdeal
         nameOffset=$nameOffset
         isActive=$isActive
         isActiveNextFrame=$isActiveNextFrame

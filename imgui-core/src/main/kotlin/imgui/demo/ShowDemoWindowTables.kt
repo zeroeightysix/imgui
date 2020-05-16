@@ -6,18 +6,27 @@ import glm_.vec2.Vec2
 import imgui.*
 import imgui.ImGui.alignTextToFramePadding
 import imgui.ImGui.beginTable
+import imgui.ImGui.bulletText
 import imgui.ImGui.button
 import imgui.ImGui.checkbox
 import imgui.ImGui.checkboxFlags
 import imgui.ImGui.collapsingHeader
 import imgui.ImGui.combo
+import imgui.ImGui.dragFloat
+import imgui.ImGui.dragInt
+import imgui.ImGui.dragVec2
 import imgui.ImGui.endTable
 import imgui.ImGui.indent
 import imgui.ImGui.inputText
+import imgui.ImGui.io
+import imgui.ImGui.popButtonRepeat
 import imgui.ImGui.popID
+import imgui.ImGui.popItemWidth
 import imgui.ImGui.popStyleColor
 import imgui.ImGui.popStyleVar
+import imgui.ImGui.pushButtonRepeat
 import imgui.ImGui.pushID
+import imgui.ImGui.pushItemWidth
 import imgui.ImGui.pushStyleColor
 import imgui.ImGui.pushStyleVar
 import imgui.ImGui.sameLine
@@ -26,8 +35,10 @@ import imgui.ImGui.separator
 import imgui.ImGui.setNextItemOpen
 import imgui.ImGui.setNextItemWidth
 import imgui.ImGui.smallButton
+import imgui.ImGui.spacing
 import imgui.ImGui.style
 import imgui.ImGui.tableAutoHeaders
+import imgui.ImGui.tableGetColumnIsSorted
 import imgui.ImGui.tableGetColumnName
 import imgui.ImGui.tableGetSortSpecs
 import imgui.ImGui.tableHeader
@@ -38,12 +49,15 @@ import imgui.ImGui.tableSetupColumn
 import imgui.ImGui.text
 import imgui.ImGui.textDisabled
 import imgui.ImGui.textUnformatted
+import imgui.ImGui.textWrapped
 import imgui.ImGui.treeNodeEx
 import imgui.ImGui.treePop
 import imgui.ImGui.unindent
 import imgui.api.demoDebugInformations.Companion.helpMarker
+import imgui.classes.DrawList
 import imgui.classes.ListClipper
 import imgui.classes.TableSortSpecs
+import imgui.dsl.indent
 import imgui.dsl.table
 import imgui.dsl.treeNode
 import imgui.TableColumnFlag as Tcf
@@ -158,275 +172,9 @@ object ShowDemoWindowTables {
             setNextItemOpen(openAction != 0)
         sorting()
 
-/*
-            if (openAction != -1)
-                ImGui::SetNextItemOpen(open_action != 0)
-            if (ImGui::TreeNode("Advanced")) {
-                static ImGuiTableFlags flags =
-                        ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_MultiSortable
-                | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders
-                | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY
-                | ImGuiTableFlags_ScrollFreezeTopRow | ImGuiTableFlags_ScrollFreezeLeftColumn
-                | ImGuiTableFlags_SizingPolicyFixedX
-
-                enum ContentsType { CT_Text, CT_Button, CT_SmallButton, CT_Selectable }
-                static int contents_type = CT_Button
-                const char * contents_type_names [] = { "Text", "Button", "SmallButton", "Selectable" }
-
-                static int items_count = IM_ARRAYSIZE(template_items_names)
-                static ImVec2 outer_size_value = ImVec2(0, 250)
-                static float row_min_height = 0.0f // Auto
-                static float inner_width_without_scroll = 0.0f // Fill
-                static float inner_width_with_scroll = 0.0f // Auto-extend
-                static bool outer_size_enabled = true
-                static bool lock_first_column_visibility = false
-                static bool show_headers = true
-                static bool show_wrapped_text = false
-                //static ImGuiTextFilter filter;
-                //ImGui::SetNextItemOpen(true, ImGuiCond_Once); // FIXME-TABLE: Enabling this results in initial clipped first pass on table which affects sizing
-                if (ImGui::TreeNodeEx("Options")) {
-                    // Make the UI compact because there are so many fields
-                    ImGuiStyle& style = ImGui::GetStyle()
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 1))
-                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(style.ItemSpacing.x, 2))
-                    ImGui::PushItemWidth(200)
-
-                    ImGui::BulletText("Features:")
-                    ImGui::Indent()
-                    ImGui::CheckboxFlags("ImGuiTableFlags_Resizable", (unsigned int *)& flags, ImGuiTableFlags_Resizable)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_Reorderable", (unsigned int *)& flags, ImGuiTableFlags_Reorderable)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_Hideable", (unsigned int *)& flags, ImGuiTableFlags_Hideable)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_Sortable", (unsigned int *)& flags, ImGuiTableFlags_Sortable)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_MultiSortable", (unsigned int *)& flags, ImGuiTableFlags_MultiSortable)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_NoSavedSettings", (unsigned int *)& flags, ImGuiTableFlags_NoSavedSettings)
-                    ImGui::Unindent()
-
-                    ImGui::BulletText("Decoration:")
-                    ImGui::Indent()
-                    ImGui::CheckboxFlags("ImGuiTableFlags_RowBg", (unsigned int *)& flags, ImGuiTableFlags_RowBg)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersV", (unsigned int *)& flags, ImGuiTableFlags_BordersV)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersVOuter", (unsigned int *)& flags, ImGuiTableFlags_BordersVOuter)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersVInner", (unsigned int *)& flags, ImGuiTableFlags_BordersVInner)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersH", (unsigned int *)& flags, ImGuiTableFlags_BordersH)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersHOuter", (unsigned int *)& flags, ImGuiTableFlags_BordersHOuter)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersHInner", (unsigned int *)& flags, ImGuiTableFlags_BordersHInner)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_BordersVFullHeight", (unsigned int *)& flags, ImGuiTableFlags_BordersVFullHeight)
-                    ImGui::Unindent()
-
-                    ImGui::BulletText("Padding, Sizing:")
-                    ImGui::Indent()
-                    ImGui::CheckboxFlags("ImGuiTableFlags_NoClipX", (unsigned int *)& flags, ImGuiTableFlags_NoClipX)
-                    if (ImGui::CheckboxFlags("ImGuiTableFlags_SizingPolicyStretchX", (unsigned int *)& flags, ImGuiTableFlags_SizingPolicyStretchX))
-                    flags & = ~(ImGuiTableFlags_SizingPolicyMaskX_ ^ ImGuiTableFlags_SizingPolicyStretchX)  // Can't specify both sizing polices so we clear the other
-                    ImGui::SameLine(); HelpMarker("[Default if ScrollX is off]\nFit all columns within available width (or specified inner_width). Fixed and Stretch columns allowed.")
-                    if (ImGui::CheckboxFlags("ImGuiTableFlags_SizingPolicyFixedX", (unsigned int *)& flags, ImGuiTableFlags_SizingPolicyFixedX))
-                    flags & = ~(ImGuiTableFlags_SizingPolicyMaskX_ ^ ImGuiTableFlags_SizingPolicyFixedX)    // Can't specify both sizing polices so we clear the other
-                    ImGui::SameLine(); HelpMarker("[Default if ScrollX is on]\nEnlarge as needed: enable scrollbar if ScrollX is enabled, otherwise extend parent window's contents rectangle. Only Fixed columns allowed. Stretched columns will calculate their width assuming no scrolling.")
-                    ImGui::CheckboxFlags("ImGuiTableFlags_NoHeadersWidth", (unsigned int *)& flags, ImGuiTableFlags_NoHeadersWidth)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_NoHostExtendY", (unsigned int *)& flags, ImGuiTableFlags_NoHostExtendY)
-                    ImGui::Unindent()
-
-                    ImGui::BulletText("Scrolling:")
-                    ImGui::Indent()
-                    ImGui::CheckboxFlags("ImGuiTableFlags_ScrollX", (unsigned int *)& flags, ImGuiTableFlags_ScrollX)
-                    ImGui::CheckboxFlags("ImGuiTableFlags_ScrollY", (unsigned int *)& flags, ImGuiTableFlags_ScrollY)
-
-                    // For the purpose of our "advanced" demo, we expose the 3 freezing variants on both axises instead of only exposing the most common flag.
-                    //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeTopRow", (unsigned int*)&flags, ImGuiTableFlags_ScrollFreezeTopRow);
-                    //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeLeftColumn", (unsigned int*)&flags, ImGuiTableFlags_ScrollFreezeLeftColumn);
-                    int freeze_row_count =(flags & ImGuiTableFlags_ScrollFreezeRowsMask_) >> ImGuiTableFlags_ScrollFreezeRowsShift_
-                    int freeze_col_count =(flags & ImGuiTableFlags_ScrollFreezeColumnsMask_) >> ImGuiTableFlags_ScrollFreezeColumnsShift_
-                    ImGui::SetNextItemWidth(ImGui::GetFrameHeight())
-                    if (ImGui::DragInt("ImGuiTableFlags_ScrollFreezeTopRow/2Rows/3Rows", & freeze_row_count, 0.2f, 0, 3))
-                    if (freeze_row_count >= 0 && freeze_row_count <= 3)
-                        flags = (flags & ~ImGuiTableFlags_ScrollFreezeRowsMask_) | (freeze_row_count << ImGuiTableFlags_ScrollFreezeRowsShift_)
-                    ImGui::SetNextItemWidth(ImGui::GetFrameHeight())
-                    if (ImGui::DragInt("ImGuiTableFlags_ScrollFreezeLeftColumn/2Columns/3Columns", & freeze_col_count, 0.2f, 0, 3))
-                    if (freeze_col_count >= 0 && freeze_col_count <= 3)
-                        flags = (flags & ~ImGuiTableFlags_ScrollFreezeColumnsMask_) | (freeze_col_count << ImGuiTableFlags_ScrollFreezeColumnsShift_)
-
-                    ImGui::Unindent()
-
-                    ImGui::BulletText("Other:")
-                    ImGui::Indent()
-                    ImGui::DragFloat2("##OuterSize", & outer_size_value . x)
-                    ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x)
-                    ImGui::Checkbox("outer_size", & outer_size_enabled)
-                    ImGui::SameLine()
-                    HelpMarker("If scrolling is disabled (ScrollX and ScrollY not set), the table is output directly in the parent window. OuterSize.y then becomes the minimum size for the table, which will extend vertically if there are more rows (unless NoHostExtendV is set).")
-
-                    // From a user point of view we will tend to use 'inner_width' differently depending on whether our table is embedding scrolling.
-                    // To facilitate experimentation we expose two values and will select the right one depending on active flags.
-                    if (flags & ImGuiTableFlags_ScrollX)
-                    ImGui::DragFloat("inner_width (when ScrollX active)", & inner_width_with_scroll, 1.0f, 0.0f, FLT_MAX)
-                    else
-                    ImGui::DragFloat("inner_width (when ScrollX inactive)", & inner_width_without_scroll, 1.0f, 0.0f, FLT_MAX)
-                    ImGui::DragFloat("row_min_height", & row_min_height, 1.0f, 0.0f, FLT_MAX)
-                    ImGui::SameLine(); HelpMarker("Specify height of the Selectable item.")
-                    ImGui::DragInt("items_count", & items_count, 0.1f, 0, 5000)
-                    ImGui::Combo("contents_type (first column)", & contents_type, contents_type_names, IM_ARRAYSIZE(contents_type_names))
-                    //filter.Draw("filter");
-                    ImGui::Checkbox("show_headers", & show_headers)
-                    ImGui::Checkbox("show_wrapped_text", & show_wrapped_text)
-                    ImGui::Checkbox("lock_first_column_visibility", & lock_first_column_visibility)
-                    ImGui::Unindent()
-
-                    ImGui::PopItemWidth()
-                    ImGui::PopStyleVar(2)
-                    ImGui::Spacing()
-                    ImGui::TreePop()
-                }
-
-                // Recreate/reset item list if we changed the number of items
-                static ImVector < MyItem > items
-                        static ImVector < int > selection
-                        static bool items_need_sort = false
-                if (items.Size != items_count) {
-                    items.resize(items_count, MyItem())
-                    for (int n = 0; n < items_count; n++)
-                    {
-                        const int template_n = n % IM_ARRAYSIZE(template_items_names)
-                        MyItem& item = items[n]
-                        item.ID = n
-                        item.Name = template_items_names[template_n]
-                        item.Quantity = (template_n == 3) ? 10 : (template_n == 4) ? 20 : 0 // Assign default quantities
-                    }
-                }
-
-                const ImDrawList * parent_draw_list = ImGui ::GetWindowDrawList()
-                const int parent_draw_list_draw_cmd_count = parent_draw_list->CmdBuffer.Size
-                ImVec2 table_scroll_cur, table_scroll_max // For debug display
-                const ImDrawList * table_draw_list = NULL  // "
-
-                        const float inner_width_to_use = (flags & ImGuiTableFlags_ScrollX) ? inner_width_with_scroll : inner_width_without_scroll
-                if (ImGui::BeginTable("##table", 6, flags, outer_size_enabled ? outer_size_value : ImVec2 (0, 0), inner_width_to_use))
-                {
-                    // Declare columns
-                    // We use the "user_id" parameter of TableSetupColumn() to specify a user id that will be stored in the sort specifications.
-                    // This is so our sort function can identify a column given our own identifier. We could also identify them based on their index!
-                    ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_DefaultSort | ImGuiTableColumnFlags_WidthFixed |(lock_first_column_visibility ? ImGuiTableColumnFlags_NoHide : 0), -1.0f, MyItemColumnID_ID)
-                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, -1.0f, MyItemColumnID_Name)
-                    ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_NoSort | ImGuiTableColumnFlags_WidthFixed, -1.0f, MyItemColumnID_Action)
-                    ImGui::TableSetupColumn("Quantity Long Label", ImGuiTableColumnFlags_PreferSortDescending | ImGuiTableColumnFlags_WidthStretch, 1.0f, MyItemColumnID_Quantity)// , ImGuiTableColumnFlags_None | ImGuiTableColumnFlags_WidthAlwaysAutoResize);
-                    ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthStretch, 1.0f, MyItemColumnID_Description)// , ImGuiTableColumnFlags_WidthAlwaysAutoResize);
-                    ImGui::TableSetupColumn("Hidden", ImGuiTableColumnFlags_DefaultHide | ImGuiTableColumnFlags_NoSort)
-
-                    // Sort our data if sort specs have been changed!
-                    const ImGuiTableSortSpecs * sorts_specs = ImGui ::TableGetSortSpecs()
-                    if (sorts_specs && sorts_specs->SpecsChanged)
-                    items_need_sort = true
-                    if (sorts_specs && items_need_sort && items.Size > 1) {
-                        MyItem::s_current_sort_specs = sorts_specs // Store in variable accessible by the sort function.
-                        qsort(& items [0], (size_t)items.Size, sizeof(items[0]), MyItem::CompareWithSortSpecs)
-                        MyItem::s_current_sort_specs = NULL
-                    }
-                    items_need_sort = false
-
-                    // Take note of whether we are currently sorting based on the Quantity field,
-                    // we will use this to trigger sorting when we know the data of this column has been modified.
-                    const bool sorts_specs_using_quantity = ImGui::TableGetColumnIsSorted(3)
-
-                    // Show headers
-                    if (show_headers)
-                        ImGui::TableAutoHeaders()
-
-                    // Show data
-                    // FIXME-TABLE FIXME-NAV: How we can get decent up/down even though we have the buttons here?
-                    ImGui::PushButtonRepeat(true)
-                    #if 1
-                    ImGuiListClipper clipper
-                            clipper.Begin(items.Size)
-                    while (clipper.Step()) {
-                        for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
-                        #else
-                        {
-                            for (int row_n = 0; row_n < items_count; n++)
-                            #endif
-                            {
-                                MyItem * item = & items [row_n]
-                                //if (!filter.PassFilter(item->Name))
-                                //    continue;
-
-                                const bool item_is_selected = selection.contains(item->ID)
-                                ImGui::PushID(item->ID)
-                                ImGui::TableNextRow(ImGuiTableRowFlags_None, row_min_height)
-
-                                // For the demo purpose we can select among different type of items submitted in the first column
-                                char label [32]
-                                sprintf(label, "%04d", item->ID)
-                                if (contents_type == CT_Text)
-                                    ImGui::TextUnformatted(label)
-                                else if (contents_type == CT_Button)
-                                    ImGui::Button(label)
-                                else if (contents_type == CT_SmallButton)
-                                    ImGui::SmallButton(label)
-                                else if (contents_type == CT_Selectable) {
-                                    if (ImGui::Selectable(label, item_is_selected, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap, ImVec2(0, row_min_height)))
-                                    {
-                                        if (ImGui::GetIO().KeyCtrl) {
-                                            if (item_is_selected)
-                                                selection.find_erase_unsorted(item->ID)
-                                            else
-                                            selection.push_back(item->ID)
-                                        } else {
-                                            selection.clear()
-                                            selection.push_back(item->ID)
-                                        }
-                                    }
-                                }
-
-                                ImGui::TableNextCell()
-                                ImGui::TextUnformatted(item->Name)
-
-                                // Here we demonstrate marking our data set as needing to be sorted again if we modified a quantity,
-                                // and we are currently sorting on the column showing the Quantity.
-                                // To avoid triggering a sort while holding the button, we only trigger it when the button has been released.
-                                // You will probably need a more advanced system in your code if you want to automatically sort when a specific entry changes.
-                                if (ImGui::TableNextCell()) {
-                                    if (ImGui::SmallButton("Chop")) { item -> Quantity += 1; }
-                                    if (sorts_specs_using_quantity && ImGui::IsItemDeactivated()) {
-                                        items_need_sort = true; }
-                                    ImGui::SameLine()
-                                    if (ImGui::SmallButton("Eat")) { item -> Quantity -= 1; }
-                                    if (sorts_specs_using_quantity && ImGui::IsItemDeactivated()) {
-                                        items_need_sort = true; }
-                                }
-
-                                ImGui::TableNextCell()
-                                ImGui::Text("%d", item->Quantity)
-
-                                ImGui::TableNextCell()
-                                if (show_wrapped_text)
-                                    ImGui::TextWrapped("Lorem ipsum dolor sit amet")
-                                else
-                                    ImGui::Text("Lorem ipsum dolor sit amet")
-
-                                ImGui::TableNextCell()
-                                ImGui::Text("1234")
-
-                                ImGui::PopID()
-                            }
-                        }
-                        ImGui::PopButtonRepeat()
-
-                        table_scroll_cur = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY())
-                        table_scroll_max = ImVec2(ImGui::GetScrollMaxX(), ImGui::GetScrollMaxY())
-                        table_draw_list = ImGui::GetWindowDrawList()
-                        ImGui::EndTable()
-                    }
-                    static bool show_debug_details = false
-                    ImGui::Checkbox("Debug details", & show_debug_details)
-                    if (show_debug_details && table_draw_list) {
-                        ImGui::SameLine(0.0f, 0.0f)
-                        const int table_draw_list_draw_cmd_count = table_draw_list->CmdBuffer.Size
-                        if (table_draw_list == parent_draw_list)
-                            ImGui::Text(": DrawCmd: +%d (in same window)", table_draw_list_draw_cmd_count - parent_draw_list_draw_cmd_count)
-                        else
-                            ImGui::Text(": DrawCmd: +%d (in child window), Scroll: (%.f/%.f) (%.f/%.f)",
-                                    table_draw_list_draw_cmd_count - 1, table_scroll_cur.x, table_scroll_max.x, table_scroll_cur.y, table_scroll_max.y)
-                    }
-                    ImGui::TreePop()
-                } */
+        if (openAction != -1)
+            setNextItemOpen(openAction != 0)
+        advanced()
 
         popID()
 
@@ -719,8 +467,8 @@ object ShowDemoWindowTables {
                 checkboxFlags("_NoSortDescending", columnFlags, column, Tcf.NoSortDescending.i)
                 checkboxFlags("_PreferSortAscending", columnFlags, column, Tcf.PreferSortAscending.i)
                 checkboxFlags("_PreferSortDescending", columnFlags, column, Tcf.PreferSortDescending.i)
-                checkboxFlags("_IndentEnable", columnFlags, column, Tcf.IndentEnable.i)
-                checkboxFlags("_IndentDisable", columnFlags, column, Tcf.IndentDisable.i)
+                checkboxFlags("_IndentEnable", columnFlags, column, Tcf.IndentEnable.i); sameLine(); helpMarker("Default for column 0")
+                checkboxFlags("_IndentDisable", columnFlags, column, Tcf.IndentDisable.i); sameLine(); helpMarker("Default for column >0")
                 popID()
                 popStyleVar(2)
             }
@@ -775,16 +523,16 @@ object ShowDemoWindowTables {
         }
     }
 
-    enum class ContentsType { ShortText, LongText, Button, StretchButton, InputText }
+    enum class ContentsType0 { ShortText, LongText, Button, StretchButton, InputText }
 
-    var contentsType = ContentsType.StretchButton.ordinal
+    var contentsType0 = ContentsType0.StretchButton.ordinal
     var flags8 = Tf.ScrollY or Tf.BordersOuter or Tf.RowBg
     val textBuf0 = ByteArray(32)
     fun sizingPoliciesCellContents() = treeNode("Sizing policies, cell contents") {
         helpMarker("This section allows you to interact and see the effect of StretchX vs FixedX sizing policies depending on whether Scroll is enabled and the contents of your columns.")
 
         setNextItemWidth(ImGui.fontSize * 12)
-        combo("Contents", ::contentsType, "Short Text\u0000Long Text\u0000Button\u0000Stretch Button\u0000InputText\u0000")
+        combo("Contents", ::contentsType0, "Short Text\u0000Long Text\u0000Button\u0000Stretch Button\u0000InputText\u0000")
 
         checkboxFlags("ImGuiTableFlags_BordersHInner", ::flags8, Tf.BordersHInner.i)
         checkboxFlags("ImGuiTableFlags_BordersHOuter", ::flags8, Tf.BordersHOuter.i)
@@ -807,12 +555,12 @@ object ShowDemoWindowTables {
                 for (column in 0..2) {
                     tableSetColumnIndex(column)
                     val label = "Hello $row,$column"
-                    when (ContentsType.values()[contentsType]) {
-                        ContentsType.ShortText -> textUnformatted(label)
-                        ContentsType.LongText -> text("Some longer text $row,$column\nOver two lines..")
-                        ContentsType.Button -> button(label)
-                        ContentsType.StretchButton -> button(label, Vec2(-Float.MIN_VALUE, 0f))
-                        ContentsType.InputText -> {
+                    when (ContentsType0.values()[contentsType0]) {
+                        ContentsType0.ShortText -> textUnformatted(label)
+                        ContentsType0.LongText -> text("Some longer text $row,$column\nOver two lines..")
+                        ContentsType0.Button -> button(label)
+                        ContentsType0.StretchButton -> button(label, Vec2(-Float.MIN_VALUE, 0f))
+                        ContentsType0.InputText -> {
                             setNextItemWidth(-Float.MIN_VALUE)
                             inputText("##", textBuf0)
                         }
@@ -976,7 +724,7 @@ object ShowDemoWindowTables {
     // If you don't use sorting, you will generally never care about giving column an ID!
     enum class MyItemColumnID { ID, Name, Action, Quantity, Description }
 
-    data class MyItem(val id: Int, val name: String, val quantity: Int)
+    data class MyItem(val id: Int, val name: String, var quantity: Int)
 
     // We have a problem which is affecting _only this demo_ and should not affect your code:
     // As we don't rely on std:: or other third-party library to compile dear imgui, we only have reliable access to qsort(),
@@ -1015,7 +763,7 @@ object ShowDemoWindowTables {
 //    const ImGuiTableSortSpecs* MyItem::s_current_sort_specs = NULL;
 
     // Create item list
-    val items = Array(50) { n ->
+    var items0 = Array(50) { n ->
         val templateN = n % templateItemsNames.size
         MyItem(id = n,
                 name = templateItemsNames[templateN],
@@ -1042,9 +790,9 @@ object ShowDemoWindowTables {
 
             // Sort our data if sort specs have been changed!
             tableGetSortSpecs()?.let { sortsSpecs ->
-                if (sortsSpecs.specsChanged && items.size > 1) {
+                if (sortsSpecs.specsChanged && items0.size > 1) {
                     sCurrentSortSpecs = sortsSpecs // Store in variable accessible by the sort function.
-                    items.sortWith(compareWithSortSpecs)
+                    items0.sortWith(compareWithSortSpecs)
                     sCurrentSortSpecs = null
                 }
             }
@@ -1052,10 +800,10 @@ object ShowDemoWindowTables {
             // Display data
             tableAutoHeaders()
             val clipper = ListClipper()
-            clipper.begin(items.size)
+            clipper.begin(items0.size)
             while (clipper.step())
                 for (rowN in clipper.display) {
-                    val item = items[rowN]
+                    val item = items0[rowN]
                     pushID(item.id)
                     tableNextRow()
                     tableSetColumnIndex(0)
@@ -1069,5 +817,267 @@ object ShowDemoWindowTables {
                     popID()
                 }
         }
+    }
+
+    var flags12 = Tf.Resizable or Tf.Reorderable or Tf.Hideable or Tf.MultiSortable or Tf.RowBg or Tf.Borders or
+            Tf.ScrollX or Tf.ScrollY or Tf.ScrollFreezeTopRow or Tf.ScrollFreezeLeftColumn or Tf.SizingPolicyFixedX
+
+    enum class ContentsType1 {
+        Text, Button, SmallButton, Selectable;
+
+        companion object {
+            val names = values().map { it.name }
+        }
+    }
+
+    var contentsType1 = ContentsType1.Button.ordinal
+    var itemsCount = templateItemsNames.size
+    val outerSizeValue = Vec2(0f, 250f)
+    var rowMinHeight = 0f // Auto
+    var innerWidthWithScroll = 0f // Auto-extend
+    var outerSizeEnabled = true
+    var lockFirstColumnVisibility = false
+    var showHeaders = true
+    var showWrappedText = false
+    fun advanced() = treeNode("Advanced") {
+        advanced_Options()
+        advanced_Table()
+    }
+
+    //static ImGuiTextFilter filter;
+    //ImGui::SetNextItemOpen(true, ImGuiCond_Once); // FIXME-TABLE: Enabling this results in initial clipped first pass on table which affects sizing
+    fun advanced_Options() {
+        if (treeNodeEx("Options")) {
+            // Make the UI compact because there are so many fields
+            pushStyleVar(StyleVar.FramePadding, Vec2(style.framePadding.x, 1))
+            pushStyleVar(StyleVar.ItemSpacing, Vec2(style.itemSpacing.x, 2))
+            pushItemWidth(200)
+
+            bulletText("Features:")
+            dsl.indent {
+                checkboxFlags("ImGuiTableFlags_Resizable", ::flags12, Tf.Resizable.i)
+                checkboxFlags("ImGuiTableFlags_Reorderable", ::flags12, Tf.Reorderable.i)
+                checkboxFlags("ImGuiTableFlags_Hideable", ::flags12, Tf.Hideable.i)
+                checkboxFlags("ImGuiTableFlags_Sortable", ::flags12, Tf.Sortable.i)
+                checkboxFlags("ImGuiTableFlags_MultiSortable", ::flags12, Tf.MultiSortable.i)
+                checkboxFlags("ImGuiTableFlags_NoSavedSettings", ::flags12, Tf.NoSavedSettings.i)
+            }
+
+            bulletText("Decoration:")
+            indent {
+                checkboxFlags("ImGuiTableFlags_RowBg", ::flags12, Tf.RowBg.i)
+                checkboxFlags("ImGuiTableFlags_BordersV", ::flags12, Tf.BordersV.i)
+                checkboxFlags("ImGuiTableFlags_BordersVOuter", ::flags12, Tf.BordersVOuter.i)
+                checkboxFlags("ImGuiTableFlags_BordersVInner", ::flags12, Tf.BordersVInner.i)
+                checkboxFlags("ImGuiTableFlags_BordersH", ::flags12, Tf.BordersH.i)
+                checkboxFlags("ImGuiTableFlags_BordersHOuter", ::flags12, Tf.BordersHOuter.i)
+                checkboxFlags("ImGuiTableFlags_BordersHInner", ::flags12, Tf.BordersHInner.i)
+                checkboxFlags("ImGuiTableFlags_BordersVFullHeight", ::flags12, Tf.BordersVFullHeight.i)
+            }
+
+            bulletText("Padding, Sizing:")
+            indent {
+                checkboxFlags("ImGuiTableFlags_NoClipX", ::flags12, Tf.NoClipX.i)
+                if (checkboxFlags("ImGuiTableFlags_SizingPolicyStretchX", ::flags12, Tf.SizingPolicyStretchX.i))
+                    flags12 = flags12 wo (Tf.SizingPolicyMaskX_ xor Tf.SizingPolicyStretchX)  // Can't specify both sizing polices so we clear the other
+                sameLine(); helpMarker("[Default if ScrollX is off]\nFit all columns within available width (or specified inner_width). Fixed and Stretch columns allowed.")
+                if (checkboxFlags("ImGuiTableFlags_SizingPolicyFixedX", ::flags12, Tf.SizingPolicyFixedX.i))
+                    flags12 = flags12 wo (Tf.SizingPolicyMaskX_ xor Tf.SizingPolicyFixedX)    // Can't specify both sizing polices so we clear the other
+                sameLine(); helpMarker("[Default if ScrollX is on]\nEnlarge as needed: enable scrollbar if ScrollX is enabled, otherwise extend parent window's contents rectangle. Only Fixed columns allowed. Stretched columns will calculate their width assuming no scrolling.")
+                checkboxFlags("ImGuiTableFlags_NoHeadersWidth", ::flags12, Tf.NoHeadersWidth.i)
+                checkboxFlags("ImGuiTableFlags_NoHostExtendY", ::flags12, Tf.NoHostExtendY.i)
+            }
+
+            bulletText("Scrolling:")
+            indent {
+                checkboxFlags("ImGuiTableFlags_ScrollX", ::flags12, Tf.ScrollX.i)
+                checkboxFlags("ImGuiTableFlags_ScrollY", ::flags12, Tf.ScrollY.i)
+
+                // For the purpose of our "advanced" demo, we expose the 3 freezing variants on both axises instead of only exposing the most common flag.
+                //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeTopRow", (unsigned int*)&flags, ImGuiTableFlags_ScrollFreezeTopRow);
+                //ImGui::CheckboxFlags("ImGuiTableFlags_ScrollFreezeLeftColumn", (unsigned int*)&flags, ImGuiTableFlags_ScrollFreezeLeftColumn);
+                val freezeRowCount = intArrayOf((flags12 and Tf.ScrollFreezeRowsMask_) shr Tf.ScrollFreezeRowsShift_.i)
+                val freezeColCount = intArrayOf((flags12 and Tf.ScrollFreezeColumnsMask_) shr Tf.ScrollFreezeColumnsShift_.i)
+                setNextItemWidth(ImGui.frameHeight)
+                if (dragInt("ImGuiTableFlags_ScrollFreezeTopRow/2Rows/3Rows", freezeRowCount, 0, 0.2f, 0, 3))
+                    if (freezeRowCount[0] in 0..3)
+                        flags12 = (flags12 wo Tf.ScrollFreezeRowsMask_) or (freezeRowCount[0] shl Tf.ScrollFreezeRowsShift_.i)
+                setNextItemWidth(ImGui.frameHeight)
+                if (dragInt("ImGuiTableFlags_ScrollFreezeLeftColumn/2Columns/3Columns", freezeColCount, 0, 0.2f, 0, 3))
+                    if (freezeColCount[0] in 0..3)
+                        flags12 = (flags12 wo Tf.ScrollFreezeColumnsMask_) or (freezeColCount[0] shl Tf.ScrollFreezeColumnsShift_.i)
+
+            }
+
+            bulletText("Other:")
+            indent {
+                dragVec2("##OuterSize", outerSizeValue)
+                sameLine(0f, style.itemInnerSpacing.x)
+                checkbox("outer_size", ::outerSizeEnabled)
+                sameLine()
+                helpMarker("If scrolling is disabled (ScrollX and ScrollY not set), the table is output directly in the parent window. OuterSize.y then becomes the minimum size for the table, which will extend vertically if there are more rows (unless NoHostExtendV is set).")
+
+                // From a user point of view we will tend to use 'inner_width' differently depending on whether our table is embedding scrolling.
+                // To facilitate experimentation we expose two values and will select the right one depending on active flags.
+                dragFloat("inner_width (when ScrollX active)", ::innerWidthWithScroll, 1f, 0f, Float.MAX_VALUE)
+                dragFloat("row_min_height", ::rowMinHeight, 1f, 0f, Float.MAX_VALUE)
+                sameLine(); helpMarker("Specify height of the Selectable item.")
+                dragInt("items_count", ::itemsCount, 0.1f, 0, 5000)
+                combo("contents_type (first column)", ::contentsType1, ContentsType1.names)
+                //filter.Draw("filter");
+                checkbox("show_headers", ::showHeaders)
+                checkbox("show_wrapped_text", ::showWrappedText)
+                checkbox("lock_first_column_visibility", ::lockFirstColumnVisibility)
+            }
+
+            popItemWidth()
+            popStyleVar(2)
+            spacing()
+            treePop()
+        }
+    }
+
+    var items1: Array<MyItem>? = null
+    val selection = ArrayList<Int>()
+    var itemsNeedSort = false
+    var showDebugDetails = false
+    fun advanced_Table() {
+
+        // Recreate/reset item list if we changed the number of items
+        if (items1!!.size != itemsCount)
+            items1 = Array(itemsCount) { n ->
+                val templateN = n % templateItemsNames.size
+                MyItem(id = n,
+                        name = templateItemsNames[templateN],
+                        quantity = if (templateN == 3) 10 else if (templateN == 4) 20 else 0) // Assign default quantities
+            }
+
+        val parentDrawList = ImGui.windowDrawList
+        val parentDrawListDrawCmdCount = parentDrawList.cmdBuffer.size
+        val tableScrollCur = Vec2()
+        val tableScrollMax = Vec2() // For debug display
+        var tableDrawList: DrawList? = null  // "
+
+        val innerWidthToUse = if (flags12 has Tf.ScrollX) innerWidthWithScroll else 0f
+        table("##table", 6, flags12, if (outerSizeEnabled) outerSizeValue else Vec2(), innerWidthToUse) {
+            // Declare columns
+            // We use the "user_id" parameter of TableSetupColumn() to specify a user id that will be stored in the sort specifications.
+            // This is so our sort function can identify a column given our own identifier. We could also identify them based on their index!
+            tableSetupColumn("ID", Tcf.DefaultSort or Tcf.WidthFixed or if (lockFirstColumnVisibility) Tcf.NoHide else Tcf.None, -1f, MyItemColumnID.ID.ordinal)
+            tableSetupColumn("Name", Tcf.WidthFixed.i, -1f, MyItemColumnID.Name.ordinal)
+            tableSetupColumn("Action", Tcf.NoSort or Tcf.WidthFixed, -1f, MyItemColumnID.Action.ordinal)
+            tableSetupColumn("Quantity Long Label", Tcf.PreferSortDescending or Tcf.WidthStretch, 1f, MyItemColumnID.Quantity.ordinal)// , ImGuiTableColumnFlags_None | ImGuiTableColumnFlags_WidthAlwaysAutoResize);
+            tableSetupColumn("Description", Tcf.WidthStretch.i, 1f, MyItemColumnID.Description.ordinal)// , ImGuiTableColumnFlags_WidthAlwaysAutoResize);
+            tableSetupColumn("Hidden", Tcf.DefaultHide or Tcf.NoSort)
+
+            // Sort our data if sort specs have been changed!
+            val sortsSpecs = tableGetSortSpecs()
+            if (sortsSpecs?.specsChanged == true)
+                itemsNeedSort = true
+            if (sortsSpecs != null && itemsNeedSort && items1.size > 1) {
+                sCurrentSortSpecs = sortsSpecs // Store in variable accessible by the sort function.
+                items1.sortWith(compareWithSortSpecs)
+                sCurrentSortSpecs = null
+            }
+            itemsNeedSort = false
+
+            // Take note of whether we are currently sorting based on the Quantity field,
+            // we will use this to trigger sorting when we know the data of this column has been modified.
+            val sortsSpecsUsingQuantity = tableGetColumnIsSorted(3)
+
+            // Show headers
+            if (showHeaders)
+                tableAutoHeaders()
+
+            // Show data
+            // FIXME-TABLE FIXME-NAV: How we can get decent up/down even though we have the buttons here?
+            pushButtonRepeat(true)
+
+            val clipper = ListClipper()
+            clipper.begin(items1.size)
+            while (clipper.step()) {
+                for (rowN in clipper.display) {
+                    val item = items1[rowN]
+                    //if (!filter.PassFilter(item->Name))
+                    //    continue;
+
+                    val itemIsSelected = item.id in selection
+                    pushID(item.id)
+                    tableNextRow(TableRowFlag.None.i, rowMinHeight)
+
+                    // For the demo purpose we can select among different type of items submitted in the first column
+                    val label = "%04d".format(item.id)
+                    when (ContentsType1.values()[contentsType1]) {
+                        ContentsType1.Text -> textUnformatted(label)
+                        ContentsType1.Button -> button(label)
+                        ContentsType1.SmallButton -> smallButton(label)
+                        ContentsType1.Selectable ->
+                            if (selectable(label, itemIsSelected, SelectableFlag.SpanAllColumns or SelectableFlag.AllowItemOverlap, Vec2(0f, rowMinHeight)))
+                                if (io.keyCtrl)
+                                    if (itemIsSelected)
+                                        selection -= item.id
+                                    else
+                                        selection += item.id
+                                else {
+                                    selection.clear()
+                                    selection += item.id
+                                }
+
+                        // Here we demonstrate marking our data set as needing to be sorted again if we modified a quantity,
+                        // and we are currently sorting on the column showing the Quantity.
+                        // To avoid triggering a sort while holding the button, we only trigger it when the button has been released.
+                        // You will probably need a more advanced system in your code if you want to automatically sort when a specific entry changes.
+                    }
+
+                    tableNextCell()
+                    textUnformatted(item.name)
+
+                    // Here we demonstrate marking our data set as needing to be sorted again if we modified a quantity,
+                    // and we are currently sorting on the column showing the Quantity.
+                    // To avoid triggering a sort while holding the button, we only trigger it when the button has been released.
+                    // You will probably need a more advanced system in your code if you want to automatically sort when a specific entry changes.
+                    if (tableNextCell()) {
+                        if (smallButton("Chop")) item.quantity++
+                        if (sortsSpecsUsingQuantity && ImGui.isItemDeactivated)
+                            itemsNeedSort = true
+                        sameLine()
+                        if (smallButton("Eat")) item.quantity--
+                        if (sortsSpecsUsingQuantity && ImGui.isItemDeactivated)
+                            itemsNeedSort = true
+                    }
+
+                    tableNextCell()
+                    text("${item.quantity}")
+
+                    tableNextCell()
+                    if (showWrappedText)
+                        textWrapped("Lorem ipsum dolor sit amet")
+                    else
+                        text("Lorem ipsum dolor sit amet")
+
+                    tableNextCell()
+                    text("1234")
+
+                    popID()
+                }
+            }
+            popButtonRepeat()
+
+            tableScrollCur.put(ImGui.scrollX, ImGui.scrollY)
+            tableScrollMax.put(ImGui.scrollMaxX, ImGui.scrollMaxY)
+            tableDrawList = ImGui.windowDrawList
+        }
+
+        checkbox("Debug details", ::showDebugDetails)
+        if (showDebugDetails)
+            tableDrawList?.let {
+                sameLine(0f, 0f)
+                val tableDrawListDrawCmdCount = it.cmdBuffer.size
+                if (it === parentDrawList)
+                    text(": DrawCmd: +${tableDrawListDrawCmdCount - parentDrawListDrawCmdCount} (in same window)")
+                else
+                    text(": DrawCmd: +${tableDrawListDrawCmdCount - 1} (in child window), Scroll: (%.f/%.f) (%.f/%.f)",
+                            tableScrollCur.x, tableScrollMax.x, tableScrollCur.y, tableScrollMax.y)
+            }
     }
 }

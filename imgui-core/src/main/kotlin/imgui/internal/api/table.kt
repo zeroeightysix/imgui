@@ -40,6 +40,7 @@ import imgui.font.FontAtlas.BitArray
 import imgui.internal.*
 import imgui.internal.classes.*
 import kool.BYTES
+import kotlin.math.max
 import imgui.TableColumnFlag as Tcf
 import imgui.TableFlag as Tf
 import imgui.TableRowFlag as Trf
@@ -104,15 +105,17 @@ internal interface table {
         table.workRect put outerRect
 
         if (useChildWindow) {
-            // Ensure no vertical scrollbar appears if we only want horizontal one, to make flag consistent (we have no other way to disable vertical scrollbar of a window while keeping the horizontal one showing)
+            // Ensure no vertical scrollbar appears if we only want horizontal one, to make flag consistent
+            // (we have no other way to disable vertical scrollbar of a window while keeping the horizontal one showing)
             val overrideContentSize = Vec2(Float.MAX_VALUE)
             if (flags has Tf.ScrollX && flags hasnt Tf.ScrollY)
                 overrideContentSize.y = Float.MIN_VALUE
 
-            // Ensure specified width (when not specified, Stretched columns will act as if the width == OuterWidth and never lead to any scrolling)
-            // We don't handle inner_width < 0.0f, we could potentially use it to right-align based on the right side of the child window work rect,
-            // which would require knowing ahead if we are going to have decoration taking horizontal spaces (typically a vertical scrollbar).
-            if (innerWidth != 0f)
+            // Ensure specified width (when not specified, Stretched columns will act as if the width == OuterWidth and
+            // never lead to any scrolling). We don't handle inner_width < 0.0f, we could potentially use it to right-align
+            // based on the right side of the child window work rect, which would require knowing ahead if we are going to
+            // have decoration taking horizontal spaces (typically a vertical scrollbar).
+            if (flags has Tf.ScrollX && innerWidth > 0f)
                 overrideContentSize.x = innerWidth
 
             if (overrideContentSize.x != Float.MAX_VALUE || overrideContentSize.y != Float.MAX_VALUE) // TODO glm
@@ -213,7 +216,7 @@ internal interface table {
             tableLoadSettings(table)
 
         // Disable output until user calls TableNextRow() or TableNextCell() leading to the TableUpdateLayout() call..
-        // This is not strictly necessary but will reduce cases were misleading "out of table" output will be confusing to the user.
+        // This is not strictly necessary but will reduce cases were "out of table" output will be misleading to the user.
         // Because we cannot safely assert in EndTable() when no rows have been created, this seems like our best option.
         innerWindow.skipItems = true
 
@@ -264,7 +267,8 @@ internal interface table {
                 }
                 assert(dstColumn.displayOrder == dstOrder - reorderDir)
 
-                // Display order is stored in both columns->IndexDisplayOrder and table->DisplayOrder[], rebuild the later from the former.
+                // Display order is stored in both columns->IndexDisplayOrder and table->DisplayOrder[],
+                // rebuild the later from the former.
                 for (columnN in 0 until table.columnsCount)
                     table.displayOrderToIndex[table.columns[columnN]!!.displayOrder] = columnN.b
                 table.reorderColumnDir = 0
@@ -338,10 +342,13 @@ internal interface table {
 
     fun tableUpdateDrawChannels(table: Table) {
         // Allocate draw channels.
-        // - We allocate them following the storage order instead of the display order so reordering columns won't needlessly increase overall dormant memory cost.
-        // - We isolate headers draw commands in their own channels instead of just altering clip rects. This is in order to facilitate merging of draw commands.
-        // - After crossing FreezeRowsCount, all columns see their current draw channel changed to a second set of draw channels.
-        // - We only use the dummy draw channel so we can push a null clipping rectangle into it without affecting other channels, while simplifying per-row/per-cell overhead. It will be empty and discarded when merged.
+        // - We allocate them following storage order instead of display order so reordering columns won't needlessly
+        //   increase overall dormant memory cost.
+        // - We isolate headers draw commands in their own channels instead of just altering clip rects.
+        //   This is in order to facilitate merging of draw commands.
+        // - After crossing FreezeRowsCount, all columns see their current draw channel changed to a second set of channels.
+        // - We only use the dummy draw channel so we can push a null clipping rectangle into it without affecting other
+        //   channels, while simplifying per-row/per-cell overhead. It will be empty and discarded when merged.
         // Draw channel allocation (before merging):
         // - NoClip                       --> 1+1 channels: background + foreground (same clip rect == 1 draw call)
         // - Clip                         --> 1+N channels
@@ -373,21 +380,24 @@ internal interface table {
 
     /** Layout columns for the frame
      *  Runs on the first call to TableNextRow(), to give a chance for TableSetupColumn() to be called first.
-     *  FIXME-TABLE: Our width (and therefore our WorkRect) will be minimal in the first frame for WidthAlwaysAutoResize columns,
-     *  increase feedback side-effect with widgets relying on WorkRect.Max.x. Maybe provide a default distribution for WidthAlwaysAutoResize columns? */
+     *  FIXME-TABLE: Our width (and therefore our WorkRect) will be minimal in the first frame for WidthAlwaysAutoResize
+     *  columns, increase feedback side-effect with widgets relying on WorkRect.Max.x. Maybe provide a default distribution
+     *  for WidthAlwaysAutoResize columns? */
     fun tableUpdateLayout(table: Table) {
 
         assert(!table.isLayoutLocked)
 
         // Compute offset, clip rect for the frame
+        // (can't make auto padding larger than what WorkRect knows about so right-alignment matches)
         val workRect = Rect(table.workRect)
-        val paddingAutoX = table.cellPaddingX2 // Can't make auto padding larger than what WorkRect knows about so right-alignment matches.
+        val paddingAutoX = table.cellPaddingX2
         val minColumnWidth = tableGetMinColumnWidth
 
         var countFixed = 0
         var widthFixed = 0f
         var totalWeights = 0f
         table.leftMostStretchedColumnDisplayOrder = -1
+        table.idealTotalWidth = 0f
         for (orderN in 0 until table.columnsCount) {
             if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
                 continue
@@ -405,19 +415,26 @@ internal interface table {
             if (table.flags has Tf.Sortable)
                 tableFixColumnSortDirection(column)
 
+            // Calculate "ideal" column width for nothing to be clipped.
+            // Combine width from regular rows + width from headers unless requested not to.
+            val columnContentWidthRows = max(column.contentWidthRowsFrozen, column.contentWidthRowsUnfrozen).f
+            val columnContentWidthHeaders = column.contentWidthHeadersIdeal.f
+            var columnWidthIdeal = columnContentWidthRows
+            if (table.flags hasnt Tf.NoHeadersWidth && column.flags hasnt Tcf.NoHeaderWidth)
+                columnWidthIdeal = columnWidthIdeal max columnContentWidthHeaders
+            columnWidthIdeal = (columnWidthIdeal + paddingAutoX) max minColumnWidth
+            table.idealTotalWidth += columnWidthIdeal
+
             if (column.flags has (Tcf.WidthAlwaysAutoResize or Tcf.WidthFixed)) {
                 // Latch initial size for fixed columns
                 countFixed += 1
                 val initSize = column.autoFitQueue != 0x00 || column.flags has Tcf.WidthAlwaysAutoResize
                 if (initSize) {
-                    // Combine width from regular rows + width from headers unless requested not to
-                    var widthRequest = (column.contentWidthRowsFrozen max column.contentWidthRowsUnfrozen).f
-                    if (table.flags hasnt Tf.NoHeadersWidth && column.flags hasnt Tcf.NoHeaderWidth)
-                        widthRequest = widthRequest max column.contentWidthHeadersDesired.f
-                    column.widthRequested = (widthRequest + paddingAutoX) max minColumnWidth
+                    column.widthRequested = columnWidthIdeal
 
-                    // FIXME-TABLE: Increase minimum size during init frame to avoid biasing auto-fitting widgets (e.g. TextWrapped) too much.
-                    // Otherwise what tends to happen is that TextWrapped would output a very large height (= first frame scrollbar display very off + clipper would skip lots of items)
+                    // FIXME-TABLE: Increase minimum size during init frame to avoid biasing auto-fitting widgets
+                    // (e.g. TextWrapped) too much. Otherwise what tends to happen is that TextWrapped would output a very
+                    // large height (= first frame scrollbar display very off + clipper would skip lots of items).
                     // This is merely making the side-effect less extreme, but doesn't properly fixes it.
                     if (column.autoFitQueue > 0x01 && table.isInitializing)
                         column.widthRequested = column.widthRequested max (minColumnWidth * 4f)
@@ -459,8 +476,8 @@ internal interface table {
                 column.widthRequested = floor(max(widthAvailForStretchedColumns * weightRatio, minColumnWidth) + 0.01f)
                 widthRemainingForStretchedColumns -= column.widthRequested
 
-                // [Resize Rule 2] Resizing from right-side of a weighted column before a fixed column froward sizing to left-side of fixed column
-                // We also need to copy the NoResize flag..
+                // [Resize Rule 2] Resizing from right-side of a weighted column before a fixed column froward sizing
+                // to left-side of fixed column. We also need to copy the NoResize flag..
                 if (column.nextActiveColumn != -1)
                     table.columns[column.nextActiveColumn]?.let { nextColumn ->
                         if (nextColumn.flags has Tcf.WidthFixed)
@@ -468,7 +485,8 @@ internal interface table {
                     }
             }
 
-            // [Resize Rule 1] The right-most active column is not resizable if there is at least one Stretch column (see comments in TableResizeColumn().)
+            // [Resize Rule 1] The right-most active column is not resizable if there is at least one Stretch column
+            // (see comments in TableResizeColumn().)
             if (column.nextActiveColumn == -1 && table.leftMostStretchedColumnDisplayOrder != -1)
                 column.flags = column.flags or Tcf.NoDirectResize_
 
@@ -505,8 +523,9 @@ internal interface table {
 //        else
 //        #endif
 
-        // Redistribute remainder width due to rounding (remainder width is < 1.0f * number of Stretch column)
-        // Using right-to-left distribution (more likely to match resizing cursor), could be adjusted depending where the mouse cursor is and/or relative weights.
+        // Redistribute remainder width due to rounding (remainder width is < 1.0f * number of Stretch column).
+        // Using right-to-left distribution (more likely to match resizing cursor), could be adjusted depending where
+        // the mouse cursor is and/or relative weights.
         // FIXME-TABLE: May be simpler to store floating width and floor final positions only
         // FIXME-TABLE: Make it optional? User might prefer to preserve pixel perfect same size?
         if (widthRemainingForStretchedColumns >= 1f) {
@@ -536,7 +555,7 @@ internal interface table {
 
             if (table.activeMaskByDisplayOrder hasnt (1L shl orderN)) {
                 // Hidden column: clear a few fields and we are done with it for the remainder of the function.
-                // We set a zero-width clip rect however we pay attention to set Min.y/Max.y properly to not interfere with the clipper.
+                // We set a zero-width clip rect but set Min.y/Max.y properly to not interfere with the clipper.
                 column.minX = offsetX
                 column.maxX = offsetX
                 column.startXRows = offsetX
@@ -558,8 +577,9 @@ internal interface table {
                 if (orderN < table.freezeColumnsRequest)
                     maxX = table.innerClipRect.max.x - (table.freezeColumnsRequest - orderN) * minColumnWidth
             } else {
-                // If horizontal scrolling if disabled, we apply a final lossless shrinking of columns in order to make sure they are all visible.
-                // Because of this we also know that all of the columns will always fit in table->WorkRect and therefore in table->InnerRect (because ScrollX is off)
+                // If horizontal scrolling if disabled, we apply a final lossless shrinking of columns in order to make
+                // sure they are all visible. Because of this we also know that all of the columns will always fit in
+                // table->WorkRect and therefore in table->InnerRect (because ScrollX is off)
                 if (table.flags hasnt Tf.NoKeepColumnsVisible)
                     maxX = table.workRect.max.x - (table.columnsActiveCount - (column.indexWithinActiveSet + 1)) * minColumnWidth
             }
@@ -584,8 +604,9 @@ internal interface table {
                 column.startXHeaders = column.startXRows
 
                 // Alignment
-                // FIXME-TABLE: This align based on the whole column width, not per-cell, and therefore isn't useful in many cases.
-                // (To be able to honor this we might be able to store a log of cells width, per row, for visible rows, but nav/programmatic scroll would have visible artifacts.)
+                // FIXME-TABLE: This align based on the whole column width, not per-cell, and therefore isn't useful in
+                // many cases (to be able to honor this we might be able to store a log of cells width, per row, for
+                // visible rows, but nav/programmatic scroll would have visible artifacts.)
                 //if (column->Flags & ImGuiTableColumnFlags_AlignRight)
                 //    column->StartXRows = ImMax(column->StartXRows, column->MaxX - column->ContentWidthRowsUnfrozen);
                 //else if (column->Flags & ImGuiTableColumnFlags_AlignCenter)
@@ -596,7 +617,7 @@ internal interface table {
                 column.contentMaxPosRowsFrozen = initialMaxPosX
                 column.contentMaxPosRowsUnfrozen = initialMaxPosX
                 column.contentMaxPosHeadersUsed = initialMaxPosX
-                column.contentMaxPosHeadersDesired = initialMaxPosX
+                column.contentMaxPosHeadersIdeal = initialMaxPosX
             }
 
             // Don't decrement auto-fit counters until container window got a chance to submit its items
@@ -612,8 +633,8 @@ internal interface table {
             activeN++
         }
 
-        // Clear Resizable flag if none of our column are actually resizable (either via an explicit _NoResize flag, either because of using _WidthAlwaysAutoResize/_WidthStretch)
-        // This will hide the resizing option from the context menu.
+        // Clear Resizable flag if none of our column are actually resizable (either via an explicit _NoResize flag,
+        // either because of using _WidthAlwaysAutoResize/_WidthStretch).
         if (countResizable == 0 && table.flags has Tf.Resizable)
             table.flags = table.flags wo Tf.Resizable
 
@@ -647,14 +668,15 @@ internal interface table {
 
     /** Process interaction on resizing borders. Actual size change will be applied in EndTable()
      *  - Set table->HoveredColumnBorder with a short delay/timer to reduce feedback noise
-     *  - Submit ahead of table contents and header, use ImGuiButtonFlags_AllowItemOverlap to prioritize widgets overlapping the same area. */
+     *  - Submit ahead of table contents and header, use ImGuiButtonFlags_AllowItemOverlap to prioritize widgets
+     *    overlapping the same area. */
     fun tableUpdateBorders(table: Table) {
 
         assert(table.flags has Tf.Resizable)
 
-        // At this point OuterRect height may be zero or under actual final height, so we rely on temporal coherency and use
-        // the final height from last frame. Because this is only affecting _interaction_ with columns, it is not really problematic.
-        // (whereas the actual visual will be displayed in EndTable() and using the current frame height)
+        // At this point OuterRect height may be zero or under actual final height, so we rely on temporal coherency and
+        // use the final height from last frame. Because this is only affecting _interaction_ with columns, it is not
+        // really problematic (whereas the actual visual will be displayed in EndTable() and using the current frame height).
         // Actual columns highlight/render will be performed in EndTable() and not be affected.
         val bordersFullHeight = !table.isUsingHeaders || table.flags has Tf.BordersVFullHeight
         val hitHalfWidth = TABLE_RESIZE_SEPARATOR_HALF_THICKNESS
@@ -757,8 +779,8 @@ internal interface table {
         // - [Resize Rule 3] If we are are followed by a fixed column and we have a Stretch column before, we need to ensure that our left border won't move.
 
         if (column0.flags has Tcf.WidthFixed) {
-            // [Resize Rule 3] If we are are followed by a fixed column and we have a Stretch column before, we need to
-            // ensure that our left border won't move, which we can do by making sure column_a/column_b resizes cancels each others.
+            // [Resize Rule 3] If we are are followed by a fixed column and we have a Stretch column before, we need to ensure
+            // that our left border won't move, which we can do by making sure column_a/column_b resizes cancels each others.
             if (column1?.flags?.has(Tcf.WidthFixed) == true)
                 if (table.leftMostStretchedColumnDisplayOrder != -1 && table.leftMostStretchedColumnDisplayOrder < column0.displayOrder) {
                     // (old_a + old_b == new_a + new_b) --> (new_a == old_a + old_b - new_b)
@@ -846,9 +868,9 @@ internal interface table {
         // Draw outer border
         if (table.flags has Tf.BordersOuter) {
             // Display outer border offset by 1 which is a simple way to display it without adding an extra draw call
-            // (Without the offset, in outer_window it would be rendered behind cells, because child windows are above their parent.
-            // In inner_window, it won't reach out over scrollbars. Another weird solution would be to display part of it in inner window,
-            // and the part that's over scrollbars in the outer window..)
+            // (Without the offset, in outer_window it would be rendered behind cells, because child windows are above their
+            // parent. In inner_window, it won't reach out over scrollbars. Another weird solution would be to display part
+            // of it in inner window, and the part that's over scrollbars in the outer window..)
             // Either solution currently won't allow us to use a larger border size: the border would clipped.
             val outerBorder = Rect(table.outerRect)
             val outerCol = table.borderColorStrong
@@ -885,12 +907,15 @@ internal interface table {
      *  Each column itself can use 1 channel (row freeze disabled) or 2 channels (row freeze enabled).
      *  When the contents of a column didn't stray off its limit, we move its channels into the corresponding group
      *  based on its position (within frozen rows/columns groups or not).
-     *  At the end of the operation our 1-4 groups will each have a ImDrawCmd using the same ClipRect, and they will be merged by the DrawSplitter.Merge() call.
+     *  At the end of the operation our 1-4 groups will each have a ImDrawCmd using the same ClipRect, and they will be
+     *  merged by the DrawSplitter.Merge() call.
      *
      *  Column channels will not be merged into one of the 1-4 groups in the following cases:
      *  - The contents stray off its clipping rectangle (we only compare the MaxX value, not the MinX value).
-     *    Direct ImDrawList calls won't be taken into account by default, if you use them make sure the ImGui:: bounds matches, by e.g. calling SetCursorScreenPos().
-     *  - The channel uses more than one draw command itself. We drop all our merging stuff here.. we could do better but it's going to be rare.
+     *    Direct ImDrawList calls won't be taken into account by default, if you use them make sure the ImGui:: bounds
+     *    matches, by e.g. calling SetCursorScreenPos().
+     *  - The channel uses more than one draw command itself. We drop all our merging stuff here.. we could do better
+     *    but it's going to be rare.
      *
      *  This function is particularly tricky to understand.. take a breath. */
     fun tableDrawMergeChannels(table: Table) {
@@ -951,13 +976,13 @@ internal interface table {
                 mergeGroup.clipRect add Rect(srcChannel._cmdBuffer[0].clipRect)
                 mergeGroupMask = mergeGroupMask or (1 shl mergeGroupDstN)
 
-                // If we end with a single group and hosted by the outer window, we'll attempt to merge our draw command with
-                // the existing outer window command. But we can only do so if our columns all fit within the expected clip rect,
-                // otherwise clipping will be incorrect when ScrollX is disabled.
+                // If we end with a single group and hosted by the outer window, we'll attempt to merge our draw command
+                // with the existing outer window command. But we can only do so if our columns all fit within the expected
+                // clip rect, otherwise clipping will be incorrect when ScrollX is disabled.
                 // FIXME-TABLE FIXME-WORKRECT: We are wasting a merge opportunity on tables without scrolling if column don't fit within host clip rect, solely because of the half-padding difference between window->WorkRect and window->InnerClipRect
 
-                // 2019/10/22: (1) This is breaking table_2_draw_calls but I cannot seem to repro what it is attempting to fix...
-                // cf git fce2e8dc "Fixed issue with clipping when outerwindow==innerwindow / support ScrollH without ScrollV."
+                // 2019/10/22: (1) This is breaking table_2_draw_calls but I cannot seem to repro what it is attempting to
+                // fix... cf git fce2e8dc "Fixed issue with clipping when outerwindow==innerwindow / support ScrollH without ScrollV."
                 // 2019/10/22: (2) Clamping code in TableUpdateLayout() seemingly made this not necessary...
 //                #if 0
 //                if (column->MinX < table->InnerClipRect.Min.x || column->MaxX > table->InnerClipRect.Max.x)
@@ -965,7 +990,8 @@ internal interface table {
 //                #endif
             }
 
-            // Invalidate current draw channel (we don't clear DrawChannelBeforeRowFreeze/DrawChannelAfterRowFreeze solely to facilitate debugging)
+            // Invalidate current draw channel
+            // (we don't clear DrawChannelBeforeRowFreeze/DrawChannelAfterRowFreeze solely to facilitate debugging)
             column.drawChannelCurrent = -1
         }
 
@@ -1234,8 +1260,8 @@ internal interface table {
 
         tableEndCell(table)
 
-        // Position cursor at the bottom of our row so it can be used for e.g. clipping calculation.
-        // However it is likely that the next call to TableBeginCell() will reposition the cursor to take account of vertical padding.
+        // Position cursor at the bottom of our row so it can be used for e.g. clipping calculation. However it is
+        // likely that the next call to TableBeginCell() will reposition the cursor to take account of vertical padding.
         window.dc.cursorPos.y = table.rowPosY2
 
         // Row background fill
@@ -1293,7 +1319,8 @@ internal interface table {
                 window.drawList.addLine(Vec2(table.borderX1, bgY2), Vec2(table.borderX2, bgY2), table.borderColorStrong)
 
         // End frozen rows (when we are past the last frozen row line, teleport cursor and alter clipping rectangle)
-        // We need to do that in TableEndRow() instead of TableBeginRow() so the list clipper can mark end of row and get the new cursor position.
+        // We need to do that in TableEndRow() instead of TableBeginRow() so the list clipper can mark end of row and
+        // get the new cursor position.
         if (unfreezeRows) {
             assert(!table.isFreezeRowsPassed)
             table.isFreezeRowsPassed = true
@@ -1630,7 +1657,8 @@ internal interface table {
             if (settings.id == 0) // Skip ditched settings
                 continue
 
-            // TableSaveSettings() may clear some of those flags when we establish that the data can be stripped (e.g. Order was unchanged)
+            // TableSaveSettings() may clear some of those flags when we establish that the data can be stripped
+            // (e.g. Order was unchanged)
             val saveSize = settings.saveFlags has Tf.Resizable
             val saveVisible = settings.saveFlags has Tf.Hideable
             val saveOrder = settings.saveFlags has Tf.Reorderable

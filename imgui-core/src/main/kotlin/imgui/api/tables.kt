@@ -157,8 +157,8 @@ interface tables {
         if (flags has Tf.Resizable)
             flags = flags or Tf.BordersVInner
 
-        // Adjust flags: disable top rows freezing if there's no scrolling
-        // In theory we could want to assert if ScrollFreeze was set without the corresponding scroll flag, but that would hinder demos.
+        // Adjust flags: disable top rows freezing if there's no scrolling.
+        // we could want to assert if ScrollFreeze was set without the corresponding scroll flag, but that would hinder demos.
         if (flags hasnt Tf.ScrollX)
             flags = flags wo Tf.ScrollFreezeColumnsMask_
         if (flags hasnt Tf.ScrollY)
@@ -168,35 +168,40 @@ interface tables {
         if (flags has Tf.NoHostExtendY && flags has (Tf.ScrollX or Tf.ScrollY))
             flags = flags wo Tf.NoHostExtendY
 
-        // Adjust flags: we don't support NoClipX with (FreezeColumns > 0), we could with some work but it doesn't appear to be worth the effort
+        // Adjust flags: we don't support NoClipX with (FreezeColumns > 0)
+        // We could with some work but it doesn't appear to be worth the effort
         if (flags has Tf.ScrollFreezeColumnsMask_)
             flags = flags wo Tf.NoClipX
 
         return flags
     }
 
-    /** About 'outer_size':
-     *    The meaning of outer_size needs to differ slightly depending of if we are using ScrollX/ScrollY flags.
-     *    With ScrollX/ScrollY: using a child window for scrolling:
+    /** (Read carefully because this is subtle but it does make sense!)
+     *  About 'outer_size', its meaning needs to differ slightly depending of if we are using ScrollX/ScrollY flags:
+     *    X:
+     *    - outer_size.x < 0.0f  ->  right align from window/work-rect maximum x edge.
+     *    - outer_size.x = 0.0f  ->  auto enlarge, use all available space.
+     *    - outer_size.x > 0.0f  ->  fixed width
+     *    Y with ScrollX/ScrollY: using a child window for scrolling:
      *    - outer_size.y < 0.0f  ->  bottom align
-     *    - outer_size.y = 0.0f  ->  bottom align: consistent with BeginChild(), best to preserve (0,0) default arg
-     *    - outer_size.y > 0.0f  ->  fixed child height
-     *    Without scrolling, we output table directly in parent window:
+     *    - outer_size.y = 0.0f  ->  bottom align, consistent with BeginChild(). not recommended unless table is last item in parent window.
+     *    - outer_size.y > 0.0f  ->  fixed child height. recommended when using Scrolling on any axis.
+     *    Y without scrolling, we output table directly in parent window:
      *    - outer_size.y < 0.0f  ->  bottom align (will auto extend, unless NoHostExtendV is set)
      *    - outer_size.y = 0.0f  ->  zero minimum height (will auto extend, unless NoHostExtendV is set)
      *    - outer_size.y > 0.0f  ->  minimum height (will auto extend, unless NoHostExtendV is set)
-     *  About: 'inner_width':
+     *  About 'inner_width':
      *    With ScrollX:
      *    - inner_width  < 0.0f  ->  *illegal* fit in known width (right align from outer_size.x) <-- weird
-     *    - inner_width  = 0.0f  ->  auto enlarge: *only* fixed size columns, which will take space they need (proportional columns becomes fixed columns) <-- desired default :(
-     *    - inner_width  > 0.0f  ->  fit in known width: fixed column take space they need if possible (otherwise shrink down), proportional columns share remaining space.
+     *    - inner_width  = 0.0f  ->  fit in outer_width: Fixed size columns will take space they need (if avail, otherwise shrink down), Stretch columns becomes Fixed columns.
+     *    - inner_width  > 0.0f  ->  override scrolling width, generally to be larger than outer_size.x. Fixed column take space they need (if avail, otherwise shrink down), Stretch columns share remaining space!
      *    Without ScrollX:
-     *    - inner_width  < 0.0f  ->  fit in known width (right align from outer_size.x) <-- desired default
-     *    - inner_width  = 0.0f  ->  auto enlarge: will emit contents size in parent window
-     *    - inner_width  > 0.0f  ->  fit in known width (bypass outer_size.x, permitted but not useful, should instead alter outer_width)
-     *  FIXME-TABLE: This is currently not very useful.
-     *  FIXME-TABLE: Replace enlarge vs fixed width by a flag.
-     *  Even if not really useful, we allow 'inner_scroll_width < outer_size.x' for consistency and to facilitate understanding of what the value does. */
+     *    - inner_width          ->  *ignored*
+     *  Details:
+     *  - If you want to use Stretch columns with ScrollX, you generally need to specify 'inner_width' otherwise the concept
+     *    of "available space" doesn't make sense.
+     *  - Even if not really useful, we allow 'inner_width < outer_size.x' for consistency and to facilitate understanding
+     *    of what the value does. */
     fun beginTable(strId: String, columnsCount: Int, flags: TableFlags = Tf.None.i, outerSize: Vec2 = Vec2(), innerWidth: Float = 0f): Boolean {
         val id = getID(strId)
         return beginTableEx(strId, id, columnsCount, flags, outerSize, innerWidth)
@@ -207,8 +212,8 @@ interface tables {
 
         val table = g.currentTable ?: error("Only call EndTable() if BeginTable() returns true!")
 
-        // This assert would be very useful to catch a common error... unfortunately it would probably trigger in some cases,
-        // and for consistency user may sometimes output empty tables (and still benefit from e.g. outer border)
+        // This assert would be very useful to catch a common error... unfortunately it would probably trigger in some
+        // cases, and for consistency user may sometimes output empty tables (and still benefit from e.g. outer border)
         //IM_ASSERT(table->IsLayoutLocked && "Table unused: never called TableNextRow(), is that the intent?");
 
         // If the user never got to call TableNextRow() or TableNextCell(), we call layout ourselves to ensure all our
@@ -251,7 +256,7 @@ interface tables {
             column.contentWidthRowsFrozen = 0 max (column.contentMaxPosRowsFrozen - refXRows).i
             column.contentWidthRowsUnfrozen = 0 max (column.contentMaxPosRowsUnfrozen - refXRows).i
             column.contentWidthHeadersUsed = 0 max (column.contentMaxPosHeadersUsed - refXHeaders).i
-            column.contentWidthHeadersDesired = 0 max (column.contentMaxPosHeadersDesired - refXHeaders).i
+            column.contentWidthHeadersIdeal = 0 max (column.contentMaxPosHeadersIdeal - refXHeaders).i
 
             if (table.activeMaskByIndex has (1L shl columnN))
                 maxPosX = maxPosX max column.maxX
@@ -424,8 +429,9 @@ interface tables {
         val column = table.columns[table.declColumnsCount]!!
         table.declColumnsCount++
 
-        // When passing a width automatically enforce WidthFixed policy (vs TableFixColumnFlags would default to WidthAlwaysAutoResize)
-        // (we write down to FlagsIn which is a little misleading, another solution would be to pass init_width_or_weight to TableFixColumnFlags)
+        // When passing a width automatically enforce WidthFixed policy
+        // (vs TableFixColumnFlags would default to WidthAlwaysAutoResize)
+        // (we write to FlagsIn which is a little misleading, another solution would be to pass init_width_or_weight to TableFixColumnFlags)
         if (flags hasnt Tcf.WidthMask_)
             if (table.flags has Tf.SizingPolicyFixedX && initWidthOrWeight > 0f)
                 flags = flags or Tcf.WidthFixed
@@ -478,8 +484,8 @@ interface tables {
     /** submit all headers cells based on data provided to TableSetupColumn() + submit context menu
      *
      *  This is a helper to output TableHeader() calls based on the column names declared in TableSetupColumn().
-     *  The intent is that advanced users willing to create customized headers would not need to use this helper and may create their own.
-     *  However presently this function uses too many internal structures/calls.     */
+     *  The intent is that advanced users willing to create customized headers would not need to use this helper and may
+     *  create their own. However presently this function uses too many internal structures/calls.     */
     fun tableAutoHeaders() {
 
         val window = g.currentWindow!!
@@ -553,7 +559,7 @@ interface tables {
                 window.dc.cursorPos.y -= style.itemSpacing.y
                 window.dc.cursorMaxPos = backupCursorMaxPos    // Don't feed back into the width of the Header row
 
-                // We don't use BeginPopupContextItem() because we want the popup to stay up even after the column is hidden
+                // We don't use BeginPopupContextItem() because we want the popup to stay up even after the column is hidden.
                 if (isMouseReleased(MouseButton.Left) && isItemHovered(HoveredFlag.AllowWhenBlockedByPopup))
                     openContextPopup = -1
             }
@@ -611,7 +617,8 @@ interface tables {
         // FIXME-TABLE: Fix when padding are disabled.
         //window->DC.CursorPos.x = column->MinX + table->CellPadding.x;
 
-        // Keep header highlighted when context menu is open. (FIXME-TABLE: however we cannot assume the ID of said popup if it has been created by the user...)
+        // Keep header highlighted when context menu is open.
+        // (FIXME-TABLE: however we cannot assume the ID of said popup if it has been created by the user...)
         val selected = table.isContextPopupOpen && table.contextPopupColumn == columnN && table.instanceInteracted == table.instanceCurrent
         val pressed = selectable("", selected, SelectableFlag._DrawHoveredWhenHeld or SelectableFlag.DontClosePopups, Vec2(0f, labelHeight))
         val held = isItemActive
@@ -678,16 +685,17 @@ interface tables {
                 tableSortSpecsClickColumn(table, column, io.keyShift)
         }
 
-        // Render clipped label
-        // Clipping here ensure that in the majority of situations, all our header cells will be merged into a single draw call.
+        // Render clipped label. Clipping here ensure that in the majority of situations, all our header cells will
+        // be merged into a single draw call.
         //window->DrawList->AddCircleFilled(ImVec2(ellipsis_max, label_pos.y), 40, IM_COL32_WHITE);
         renderTextEllipsis(window.drawList, labelPos, Vec2(ellipsisMax, labelPos.y + labelHeight + style.framePadding.y), ellipsisMax, ellipsisMax, label, labelEnd, labelSize)
 
-        // We feed our unclipped width to the column without writing on CursorMaxPos, so that column is still considering for merging.
+        // We feed our unclipped width to the column without writing on CursorMaxPos, so that column is still considering
+        // for merging.
         // FIXME-TABLE: Clarify policies of how label width and potential decorations (arrows) fit into auto-resize of the column
         val maxPosX = labelPos.x + labelSize.x + wSortText + wArrow
         column.contentMaxPosHeadersUsed = column.contentMaxPosHeadersUsed max workR.max.x// ImMin(max_pos_x, work_r.Max.x));
-        column.contentMaxPosHeadersDesired = column.contentMaxPosHeadersDesired max maxPosX
+        column.contentMaxPosHeadersIdeal = column.contentMaxPosHeadersIdeal max maxPosX
 
         popID()
     }
@@ -699,7 +707,8 @@ interface tables {
      *  - Lifetime: don't hold on this pointer over multiple frames or past any subsequent call to BeginTable()!
      *
      *  Return NULL if no sort specs (most often when ImGuiTableFlags_Sortable is not set)
-     *  You can sort your data again when 'SpecsChanged == true'. It will be true with sorting specs have changed since last call, or the first time.
+     *  You can sort your data again when 'SpecsChanged == true'. It will be true with sorting specs have changed since
+     *  last call, or the first time.
      *  Lifetime: don't hold on this pointer over multiple frames or past any subsequent call to BeginTable()! */
     fun tableGetSortSpecs(): TableSortSpecs? {  // get latest sort specs for the table (NULL if not sorting).
 
