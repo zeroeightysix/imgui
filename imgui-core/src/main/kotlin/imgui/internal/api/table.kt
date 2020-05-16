@@ -391,13 +391,14 @@ internal interface table {
         // (can't make auto padding larger than what WorkRect knows about so right-alignment matches)
         val workRect = Rect(table.workRect)
         val paddingAutoX = table.cellPaddingX2
+        val spacingAutoX = table.cellSpacingX * (1f + 2f) // CellSpacingX is >0.0f when there's no vertical border, in which case we add two extra CellSpacingX to make auto-fit look nice instead of cramped. We may want to expose this somehow.
         val minColumnWidth = tableGetMinColumnWidth
 
         var countFixed = 0
         var widthFixed = 0f
         var totalWeights = 0f
         table.leftMostStretchedColumnDisplayOrder = -1
-        table.idealTotalWidth = 0f
+        table.columnsAutoFitWidth = 0f
         for (orderN in 0 until table.columnsCount) {
             if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
                 continue
@@ -423,7 +424,7 @@ internal interface table {
             if (table.flags hasnt Tf.NoHeadersWidth && column.flags hasnt Tcf.NoHeaderWidth)
                 columnWidthIdeal = columnWidthIdeal max columnContentWidthHeaders
             columnWidthIdeal = (columnWidthIdeal + paddingAutoX) max minColumnWidth
-            table.idealTotalWidth += columnWidthIdeal
+            table.columnsAutoFitWidth += columnWidthIdeal
 
             if (column.flags has (Tcf.WidthAlwaysAutoResize or Tcf.WidthFixed)) {
                 // Latch initial size for fixed columns
@@ -450,6 +451,10 @@ internal interface table {
                     table.leftMostStretchedColumnDisplayOrder = column.displayOrder
             }
         }
+
+        // CellSpacingX is >0.0f when there's no vertical border, in which case we add two extra CellSpacingX to make auto-fit look nice instead of cramped.
+        // We may want to expose this somehow.
+        table.columnsAutoFitWidth += spacingAutoX * (table.columnsActiveCount - 1)
 
         // Layout
         // Remove -1.0f to cancel out the +1.0f we are doing in EndTable() to make last column line visible

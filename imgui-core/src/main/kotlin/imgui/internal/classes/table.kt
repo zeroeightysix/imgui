@@ -153,11 +153,15 @@ class Table {
 
     /** Height of first row from last frame */
     var lastFirstRowHeight = 0f
-    var columnsTotalWidth = 0f
+
     /** User value passed to BeginTable(), see comments at the top of BeginTable() for details. */
     var innerWidth = 0f
-    /** Sum of ideal column width for nothing to be clipped */
-    var idealTotalWidth = 0f
+
+    /** Sum of current column width */
+    var columnsTotalWidth = 0f
+    /** Sum of ideal column width in order nothing to be clipped, used for auto-fitting and content width submission in outer window */
+    var columnsAutoFitWidth = 0f
+
     var resizedColumnNextWidth = 0f
 
     // Note: OuterRect.Max.y is often FLT_MAX until EndTable(), unless a height has been specified in BeginTable().

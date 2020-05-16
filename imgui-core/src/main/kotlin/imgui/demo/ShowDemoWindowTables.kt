@@ -379,6 +379,20 @@ object ShowDemoWindowTables {
                 }
             }
         }
+
+        table("##table2", 3, flags4 or Tf.SizingPolicyFixedX) {
+            tableSetupColumn("One")
+            tableSetupColumn("Two")
+            tableSetupColumn("Three")
+            tableAutoHeaders()
+            for (row in 0..5) {
+                tableNextRow()
+                for (column in 0..2) {
+                    tableSetColumnIndex(column)
+                    text("Fixed $row,$column")
+                }
+            }
+        }
     }
 
     var flags5 = Tf.ScrollY or Tf.ScrollFreezeTopRow or Tf.RowBg or Tf.BordersOuter or Tf.BordersV or Tf.Resizable or Tf.Reorderable or Tf.Hideable

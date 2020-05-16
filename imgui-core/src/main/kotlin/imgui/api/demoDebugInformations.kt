@@ -834,7 +834,7 @@ interface demoDebugInformations {
                 if (ImGui.isItemHovered())
                     ImGui.foregroundDrawList.addRect(table.outerRect.min, table.outerRect.max, COL32(255, 255, 0, 255))
                 if (open) {
-                    bulletText("OuterWidth: %.1f, InnerWidth: %.1f${if(table.innerWidth == 0f) " (auto)" else ""}, IdealWidth: %.1f", table.outerRect.width, table.innerWidth, table.idealTotalWidth)
+                    bulletText("OuterWidth: %.1f, InnerWidth: %.1f${if(table.innerWidth == 0f) " (auto)" else ""}, ColumnsWidth: %.1f, AutoFitWidth: %.1f", table.outerRect.width, table.innerWidth, table.columnsTotalWidth, table.columnsAutoFitWidth)
                     for (n in 0 until table.columnsCount) {
                         val column = table.columns[n]!!
                         val name = tableGetColumnName(table, n)

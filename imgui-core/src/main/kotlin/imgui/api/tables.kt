@@ -243,28 +243,6 @@ interface tables {
         table.workRect.max.y = table.workRect.max.y max table.outerRect.max.y
         table.lastOuterHeight = table.outerRect.height
 
-        // Store content width reference for each column
-        var maxPosX = innerWindow.dc.cursorMaxPos.x
-        for (columnN in 0 until table.columnsCount) {
-
-            val column = table.columns[columnN]!!
-
-            // Store content width (for both Headers and Rows)
-            //float ref_x = column->MinX;
-            val refXRows = column.startXRows - table.cellPaddingX1
-            val refXHeaders = column.startXHeaders - table.cellPaddingX1
-            column.contentWidthRowsFrozen = 0 max (column.contentMaxPosRowsFrozen - refXRows).i
-            column.contentWidthRowsUnfrozen = 0 max (column.contentMaxPosRowsUnfrozen - refXRows).i
-            column.contentWidthHeadersUsed = 0 max (column.contentMaxPosHeadersUsed - refXHeaders).i
-            column.contentWidthHeadersIdeal = 0 max (column.contentMaxPosHeadersIdeal - refXHeaders).i
-
-            // Add an extra 1 pixel so we can see the last column vertical line if it lies on the right-most edge.
-            if (table.activeMaskByIndex has (1L shl columnN))
-                maxPosX = maxPosX max (column.maxX + 1f)
-        }
-
-        innerWindow.dc.cursorMaxPos.x = maxPosX
-
         if (flags hasnt Tf.NoClipX)
             innerWindow.drawList.popClipRect()
         innerWindow.clipRect put innerWindow.drawList._clipRectStack.last()
@@ -296,21 +274,49 @@ interface tables {
         }
 
         // Layout in outer window
+        val backupOuterCursorPosX = outerWindow.dc.cursorPos.x
+        val backupOuterMaxPosX = outerWindow.dc.cursorMaxPos.x
+        val backupInnerMaxPosX = innerWindow.dc.cursorMaxPos.x
         innerWindow.workRect put table.hostWorkRect
         innerWindow.skipItems = table.hostSkipItems
         outerWindow.dc.cursorPos put table.outerRect.min
         outerWindow.dc.columnsOffset = 0f
-        if (innerWindow !== outerWindow) {
-            // Override EndChild's ItemSize with our own to enable auto-resize on the X axis when possible
-            val backupOuterCursorPosX = outerWindow.dc.cursorPos.x
+        if (innerWindow !== outerWindow)
             endChild()
-            outerWindow.dc.cursorMaxPos.x = backupOuterCursorPosX + table.columnsTotalWidth + 1f + innerWindow.scrollbarSizes.x
-        } else {
+        else {
             popID()
             val itemSz = table.outerRect.size
             itemSz.x = table.columnsTotalWidth
             itemSize(itemSz)
         }
+
+        // Store content width reference for each column
+        var maxPosX = backupInnerMaxPosX
+        for (columnN in 0 until table.columnsCount) {
+
+            val column = table.columns[columnN]!!
+
+            // Store content width (for both Headers and Rows)
+            //float ref_x = column->MinX;
+            val refXRows = column.startXRows - table.cellPaddingX1
+            val refXHeaders = column.startXHeaders - table.cellPaddingX1
+            column.contentWidthRowsFrozen = 0 max (column.contentMaxPosRowsFrozen - refXRows).i
+            column.contentWidthRowsUnfrozen = 0 max (column.contentMaxPosRowsUnfrozen - refXRows).i
+            column.contentWidthHeadersUsed = 0 max (column.contentMaxPosHeadersUsed - refXHeaders).i
+            column.contentWidthHeadersIdeal = 0 max (column.contentMaxPosHeadersIdeal - refXHeaders).i
+
+            // Add an extra 1 pixel so we can see the last column vertical line if it lies on the right-most edge.
+            if (table.activeMaskByIndex has (1L shl columnN))
+                maxPosX = maxPosX max (column.maxX + 1f)
+        }
+
+        // Override EndChild/ItemSize max extent with our own to enable auto-resize on the X axis when possible
+        // FIXME-TABLE: This can be improved (e.g. for Fixed columns we don't want to auto AutoFitWidth? or propagate window auto-fit to table?)
+        if (table.flags has Tf.ScrollX) {
+            innerWindow.dc.cursorMaxPos.x = maxPosX // Set contents width for scrolling
+            outerWindow.dc.cursorMaxPos.x = backupOuterMaxPosX max (backupOuterCursorPosX + table.columnsTotalWidth + 1f + innerWindow.scrollbarSizes.x) // For auto-fit
+        } else
+            outerWindow.dc.cursorMaxPos.x = backupOuterMaxPosX max (table.workRect.min.x + table.columnsAutoFitWidth) // For auto-fit
 
         // Save settings
         if (table.isSettingsDirty)
