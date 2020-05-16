@@ -306,7 +306,7 @@ interface tables {
             column.contentWidthHeadersIdeal = 0 max (column.contentMaxPosHeadersIdeal - refXHeaders).i
 
             // Add an extra 1 pixel so we can see the last column vertical line if it lies on the right-most edge.
-            if (table.activeMaskByIndex has (1L shl columnN))
+            if (table.visibleMaskByIndex has (1L shl columnN))
                 maxPosX = maxPosX max (column.maxX + 1f)
         }
 
@@ -370,7 +370,7 @@ interface tables {
             tableNextRow()
 
         val columnN = table.currentColumn
-        return table.visibleMaskByIndex has (1L shl columnN)
+        return table.visibleUnclippedMaskByIndex has (1L shl columnN)
     }
 
     /** append into the specified column. Return true if column is visible. */
@@ -385,7 +385,7 @@ interface tables {
             tableBeginCell(table, columnIdx)
         }
 
-        return table.visibleMaskByIndex has (1L shl columnIdx)
+        return table.visibleUnclippedMaskByIndex has (1L shl columnIdx)
     }
 
     // return current column index.
@@ -401,7 +401,7 @@ interface tables {
     fun tableGetColumnIsVisible(columnN_: Int): Boolean {
         val table = g.currentTable ?: return false
         val columnN = if (columnN_ < 0) table.currentColumn else columnN_
-        return table.visibleMaskByIndex has (1L shl columnN)
+        return table.visibleUnclippedMaskByIndex has (1L shl columnN)
     }
 
     /** return true if column is included in the sort specs. Rarely used, can be useful to tell if a data change should trigger resort. Equivalent to test ImGuiTableSortSpecs's ->ColumnsMask & (1 << column_n). Pass -1 to use current column. */
@@ -467,8 +467,8 @@ interface tables {
         if (table.isInitializing) {
             // Init default visibility/sort state
             if (flags has Tcf.DefaultHide && table.settingsLoadedFlags hasnt Tf.Hideable) {
-                column.isActive = false
-                column.isActiveNextFrame = false
+                column.isVisible = false
+                column.isVisibleNextFrame = false
             }
             if (flags has Tcf.DefaultSort && table.settingsLoadedFlags hasnt Tf.Sortable) {
                 column.sortOrder = 0 // Multiple columns using _DefaultSort will be reordered when building the sort specs.
@@ -550,8 +550,8 @@ interface tables {
         // FIXME-TABLE: This is not user-land code any more... perhaps instead we should expose hovered column.
         // and allow some sort of row-centric IsItemHovered() for full flexibility?
         var unusedX1 = table.workRect.min.x
-        if (table.rightMostActiveColumn != -1)
-            unusedX1 = unusedX1 max table.columns[table.rightMostActiveColumn]!!.maxX
+        if (table.rightMostVisibleColumn != -1)
+            unusedX1 = unusedX1 max table.columns[table.rightMostVisibleColumn]!!.maxX
         if (unusedX1 < table.workRect.max.x) {
             // FIXME: We inherit ClipRect/SkipItem from last submitted column (active or not), let's temporarily override it.
             // Because we don't perform any rendering here we just overwrite window->ClipRect used by logic.
@@ -641,15 +641,15 @@ interface tables {
 
             // We don't reorder: through the frozen<>unfrozen line, or through a column that is marked with ImGuiTableColumnFlags_NoReorder.
             if (io.mouseDelta.x < 0f && io.mousePos.x < cellR.min.x)
-                table.columns.getOrNull(column.prevActiveColumn)?.let { prevColumn ->
+                table.columns.getOrNull(column.prevVisibleColumn)?.let { prevColumn ->
                     if ((column.flags or prevColumn.flags) hasnt Tcf.NoReorder)
-                        if (column.indexWithinActiveSet < table.freezeColumnsRequest == prevColumn.indexWithinActiveSet < table.freezeColumnsRequest)
+                        if (column.indexWithinVisibleSet < table.freezeColumnsRequest == prevColumn.indexWithinVisibleSet < table.freezeColumnsRequest)
                             table.reorderColumnDir = -1
                 }
             if (io.mouseDelta.x > 0f && io.mousePos.x > cellR.max.x)
-                table.columns.getOrNull(column.nextActiveColumn)?.let { nextColumn ->
+                table.columns.getOrNull(column.nextVisibleColumn)?.let { nextColumn ->
                     if ((column.flags or nextColumn.flags) hasnt Tcf.NoReorder)
-                        if (column.indexWithinActiveSet < table.freezeColumnsRequest == nextColumn.indexWithinActiveSet < table.freezeColumnsRequest)
+                        if (column.indexWithinVisibleSet < table.freezeColumnsRequest == nextColumn.indexWithinVisibleSet < table.freezeColumnsRequest)
                             table.reorderColumnDir = +1
                 }
         }

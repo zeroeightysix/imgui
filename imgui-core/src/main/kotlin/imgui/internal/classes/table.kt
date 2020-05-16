@@ -29,14 +29,14 @@ class Table {
     /** Point within RawData[]. Store display order of columns (when not reordered, the values are 0...Count-1) */
     var displayOrderToIndex = ByteArray(0)
 
-    /** Column Index -> IsActive map (Active == not hidden by user/api) in a format adequate for iterating column without touching cold data */
-    var activeMaskByIndex = 0L
-
-    /** Column DisplayOrder -> IsActive map */
-    var activeMaskByDisplayOrder = 0L
-
-    /** Visible (== Active and not Clipped) */
+    /** Column Index -> IsVisible map (== not hidden by user/api) in a format adequate for iterating column without touching cold data */
     var visibleMaskByIndex = 0L
+
+    /** Column DisplayOrder -> IsVisible map */
+    var visibleMaskByDisplayOrder = 0L
+
+    /** Visible and not Clipped, aka "actually visible" "not hidden by some scrolling" */
+    var visibleUnclippedMaskByIndex = 0L
 
     /** Which data were loaded from the .ini file (e.g. when order is not altered we won't save order) */
     var settingsLoadedFlags = TableFlag.None.i
@@ -49,7 +49,7 @@ class Table {
     var columnsCount = 0
 
     /** Number of non-hidden columns (<= ColumnsCount) */
-    var columnsActiveCount = 0
+    var columnsVisibleCount = 0
 
     var currentColumn = 0
 
@@ -71,7 +71,7 @@ class Table {
             ImS8                    ReorderColumn
 
     [2] =   ImS8                        ReorderColumnDir
-            ImS8                        RightMostActiveColumn
+            ImS8                        RightMostVisibleColumn
             ImS8                        LeftMostStretchedColumnDisplayOrder
             ImS8                        ContextPopupColumn
             ImS8                        DummyDrawChannel
@@ -262,7 +262,7 @@ class Table {
         }
 
     /** Index of right-most non-hidden column. */
-    var rightMostActiveColumn: Int
+    var rightMostVisibleColumn: Int
         get() = (longs[2] shr 48).b.i
         set(value) {
             longs[2] = (longs[2] and 0xff00_ffff_ffff_ffffUL) or ((value.L and 0xff) shl 48)
@@ -502,7 +502,7 @@ class Table {
         heldHeaderColumn=$heldHeaderColumn
         reorderColumn=$reorderColumn
         reorderColumnDir=$reorderColumnDir
-        rightMostActiveColumn=$rightMostActiveColumn
+        rightMostVisibleColumn=$rightMostVisibleColumn
         leftMostStretchedColumnDisplayOrder=$leftMostStretchedColumnDisplayOrder
         contextPopupColumn=$contextPopupColumn
         dummyDrawChannel=$dummyDrawChannel
@@ -558,7 +558,6 @@ class TableColumnSettings {
             int = (int and 0b11111111_11111111_11111111_00000001.i) or ((value.ordinal shl 1) and 0b11111110)
         }
 
-    /** This is called Active in ImGuiTableColumn, but in user-facing code we call this Visible (thus in .ini file) */
     var visible: Boolean
         get() = (int and 1) == 1
         set(value) {
@@ -592,7 +591,7 @@ val TABLE_MAX_DRAW_CHANNELS = 2 + 64 * 2
 /** Storage for one column of a table
  *
  *  [Internal] sizeof() ~ 100
- *  We use the terminology "Active" to refer to a column that is not Hidden by user or programmatically. We don't use the term "Visible" because it is ambiguous since an Active column can be non-visible because of scrolling. */
+ *  We use the terminology "Visible" to refer to a column that is not Hidden by user or settings. However it may still be out of view and clipped (see IsClipped). */
 class TableColumn {
 
     /** Clipping rectangle for the column */
@@ -642,18 +641,18 @@ class TableColumn {
             ImS16                   ContentWidthHeadersIdeal
 
     [1] =   ImS16                   NameOffset
-            bool                    IsActive
-            bool                    IsActiveNextFrame
+            bool                    IsVisible
+            bool                    IsVisibleNextFrame
             bool                    IsClipped
             bool                    SkipItems
             ImS8                    DisplayOrder
-            ImS8                    IndexWithinActiveSet
+            ImS8                    IndexWithinVisibleSet
             ImS8                    DrawChannelCurrent
             ImS8                    DrawChannelRowsBeforeFreeze
             ImS8                    DrawChannelRowsAfterFreeze
 
-    [2] =   ImS8                    PrevActiveColumn
-            ImS8                    NextActiveColumn
+    [2] =   ImS8                    PrevVisibleColumn
+            ImS8                    NextVisibleColumn
             ImS8                    AutoFitQueue
             ImS8                    CannotSkipItemsQueue
             ImS8                    SortOrder
@@ -695,8 +694,8 @@ class TableColumn {
             longs[1] = (longs[1] and 0x0000_ffff_ffff_ffff) or (value.L shl 48)
         }
 
-    /** Is the column not marked Hidden by the user (regardless of clipping). We're not calling this "Visible" here because visibility also depends on clipping. */
-    var isActive: Boolean
+    /** Is the column not marked Hidden by the user? (could be clipped by scrolling, etc). */
+    var isVisible: Boolean
         get() {
             val b = 1L shl 47
             return (longs[1] and b) == b
@@ -709,7 +708,7 @@ class TableColumn {
             }
         }
 
-    var isActiveNextFrame: Boolean
+    var isVisibleNextFrame: Boolean
         get() {
             val b = 1L shl 46
             return (longs[1] and b) == b
@@ -722,7 +721,7 @@ class TableColumn {
             }
         }
 
-    /** Set when not overlapping the host window clipping rectangle. We don't use the opposite "!Visible" name because Clipped can be altered by events. */
+    /** Set when not overlapping the host window clipping rectangle. */
     var isClipped: Boolean
         get() {
             val b = 1L shl 45
@@ -756,8 +755,8 @@ class TableColumn {
             longs[1] = (longs[1] and 0xffff_ff00_ffff_ffffUL) or ((value.L and 0xff) shl 32)
         }
 
-    /** Index within active/visible set (<= IndexToDisplayOrder) */
-    var indexWithinActiveSet: Int
+    /** Index within visible set (<= IndexToDisplayOrder) */
+    var indexWithinVisibleSet: Int
         get() = (longs[1] shr 24).b.i
         set(value) {
             longs[1] = (longs[1] and 0xffff_ffff_00ff_ffffUL) or ((value.L and 0xff) shl 24)
@@ -781,15 +780,15 @@ class TableColumn {
             longs[1] = (longs[1] and 0xffff_ffff_ffff_ff00UL) or (value.L and 0xff)
         }
 
-    /** Index of prev active column within Columns[], -1 if first active column */
-    var prevActiveColumn: Int
+    /** Index of prev visible column within Columns[], -1 if first visible column */
+    var prevVisibleColumn: Int
         get() = (longs[2] shr 56).b.i
         set(value) {
             longs[2] = (longs[2] and 0x00ff_ffff_ffff_ffff) or (value.L shl 56)
         }
 
-    /** Index of next active column within Columns[], -1 if last active column */
-    var nextActiveColumn: Int
+    /** Index of next visible column within Columns[], -1 if last visible column */
+    var nextVisibleColumn: Int
         get() = (longs[2] shr 48).b.i
         set(value) {
             longs[2] = (longs[2] and 0xff00_ffff_ffff_ffffUL) or ((value.L and 0xff) shl 48)
@@ -825,15 +824,15 @@ class TableColumn {
 
     init {
         nameOffset = -1
-        isActive = true
-        isActiveNextFrame = true
+        isVisible = true
+        isVisibleNextFrame = true
         displayOrder = -1
-        indexWithinActiveSet = -1
+        indexWithinVisibleSet = -1
         drawChannelCurrent = -1
         drawChannelRowsBeforeFreeze = -1
         drawChannelRowsAfterFreeze = -1
-        prevActiveColumn = -1
-        nextActiveColumn = -1
+        prevVisibleColumn = -1
+        nextVisibleColumn = -1
         autoFitQueue = (1 shl 3) - 1 // Skip for three frames
         cannotSkipItemsQueue = (1 shl 3) - 1 // Skip for three frames
         sortOrder = -1
@@ -846,17 +845,17 @@ class TableColumn {
         contentWidthHeadersUsed=$contentWidthHeadersUsed
         contentWidthHeadersIdeal=$contentWidthHeadersIdeal
         nameOffset=$nameOffset
-        isActive=$isActive
-        isActiveNextFrame=$isActiveNextFrame
+        isVisible=$isVisible
+        isVisibleNextFrame=$isVisibleNextFrame
         isClipped=$isClipped
         skipItems=$skipItems
         displayOrder=$displayOrder
-        indexWithinActiveSet=$indexWithinActiveSet
+        indexWithinVisibleSet=$indexWithinVisibleSet
         drawChannelCurrent=$drawChannelCurrent
         drawChannelRowsBeforeFreeze=$drawChannelRowsBeforeFreeze
         drawChannelRowsAfterFreeze=$drawChannelRowsAfterFreeze
-        prevActiveColumn=$prevActiveColumn
-        nextActiveColumn=$nextActiveColumn
+        prevVisibleColumn=$prevVisibleColumn
+        nextVisibleColumn=$nextVisibleColumn
         autoFitQueue=$autoFitQueue
         cannotSkipItemsQueue=$cannotSkipItemsQueue
         sortOrder=$sortOrder

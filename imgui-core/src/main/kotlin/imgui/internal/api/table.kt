@@ -170,7 +170,7 @@ internal interface table {
         table.declColumnsCount = 0
         table.hoveredColumnBody = -1
         table.hoveredColumnBorder = -1
-        table.rightMostActiveColumn = -1
+        table.rightMostVisibleColumn = -1
 
         // Using opaque colors facilitate overlapping elements of the grid
         table.borderColorStrong = Col.TableBorderStrong.u32
@@ -220,7 +220,7 @@ internal interface table {
         // Because we cannot safely assert in EndTable() when no rows have been created, this seems like our best option.
         innerWindow.skipItems = true
 
-        // Update/lock which columns will be Active for the frame
+        // Update/lock which columns will be Visible for the frame
         tableBeginUpdateColumns(table)
 
         return true
@@ -255,7 +255,7 @@ internal interface table {
                 assert(reorderDir == -1 || reorderDir == +1)
                 assert(table.flags has Tf.Reorderable)
                 val srcColumn = table.columns[table.reorderColumn]!!
-                val dstColumn = table.columns[if (reorderDir == -1) srcColumn.prevActiveColumn else srcColumn.nextActiveColumn]
+                val dstColumn = table.columns[if (reorderDir == -1) srcColumn.prevVisibleColumn else srcColumn.nextVisibleColumn]
 //                IM_UNUSED(dstColumn)
                 val srcOrder = srcColumn.displayOrder
                 val dstOrder = dstColumn!!.displayOrder
@@ -286,10 +286,10 @@ internal interface table {
             table.isSettingsDirty = true
         }
 
-        // Setup and lock Active state and order
-        table.columnsActiveCount = 0
+        // Setup and lock Visible state and order
+        table.columnsVisibleCount = 0
         table.isDefaultDisplayOrder = true
-        var lastActiveColumn: TableColumn? = null
+        var lastVisibleColumn: TableColumn? = null
         var wantColumnAutoFit = false
         for (orderN in 0 until table.columnsCount) {
             val columnN = table.displayOrderToIndex[orderN].i
@@ -298,11 +298,11 @@ internal interface table {
             val column = table.columns[columnN]!!
             column.nameOffset = -1
             if (table.flags hasnt Tf.Hideable || column.flags has Tcf.NoHide)
-                column.isActiveNextFrame = true
-            if (column.isActive != column.isActiveNextFrame) {
-                column.isActive = column.isActiveNextFrame
+                column.isVisibleNextFrame = true
+            if (column.isVisible != column.isVisibleNextFrame) {
+                column.isVisible = column.isVisibleNextFrame
                 table.isSettingsDirty = true
-                if (!column.isActive && column.sortOrder != -1)
+                if (!column.isVisible && column.sortOrder != -1)
                     table.isSortSpecsDirty = true
             }
             if (column.sortOrder > 0 && table.flags hasnt Tf.MultiSortable)
@@ -312,27 +312,27 @@ internal interface table {
 
             val indexMask = 1L shl columnN
             val displayOrderMask = 1L shl column.displayOrder
-            if (column.isActive) {
-                column.prevActiveColumn = -1
-                column.nextActiveColumn = -1
-                lastActiveColumn?.let {
-                    it.nextActiveColumn = columnN
-                    column.prevActiveColumn = table.columns.indexOf(it)
+            if (column.isVisible) {
+                column.prevVisibleColumn = -1
+                column.nextVisibleColumn = -1
+                lastVisibleColumn?.let {
+                    it.nextVisibleColumn = columnN
+                    column.prevVisibleColumn = table.columns.indexOf(it)
                 }
-                column.indexWithinActiveSet = table.columnsActiveCount
-                table.columnsActiveCount++
-                table.activeMaskByIndex = table.activeMaskByIndex or indexMask
-                table.activeMaskByDisplayOrder = table.activeMaskByDisplayOrder or displayOrderMask
-                lastActiveColumn = column
+                column.indexWithinVisibleSet = table.columnsVisibleCount
+                table.columnsVisibleCount++
+                table.visibleMaskByIndex = table.visibleMaskByIndex or indexMask
+                table.visibleMaskByDisplayOrder = table.visibleMaskByDisplayOrder or displayOrderMask
+                lastVisibleColumn = column
             } else {
-                column.indexWithinActiveSet = -1
-                table.activeMaskByIndex = table.activeMaskByIndex wo indexMask
-                table.activeMaskByDisplayOrder = table.activeMaskByDisplayOrder wo displayOrderMask
+                column.indexWithinVisibleSet = -1
+                table.visibleMaskByIndex = table.visibleMaskByIndex wo indexMask
+                table.visibleMaskByDisplayOrder = table.visibleMaskByDisplayOrder wo displayOrderMask
             }
-            assert(column.indexWithinActiveSet <= column.displayOrder)
+            assert(column.indexWithinVisibleSet <= column.displayOrder)
         }
-        table.visibleMaskByIndex = table.activeMaskByIndex // Columns will be masked out by TableUpdateLayout() when Clipped
-        table.rightMostActiveColumn = lastActiveColumn?.let { table.columns.indexOf(it) } ?: -1
+        table.visibleUnclippedMaskByIndex = table.visibleMaskByIndex // Columns will be masked out by TableUpdateLayout() when Clipped
+        table.rightMostVisibleColumn = lastVisibleColumn?.let { table.columns.indexOf(it) } ?: -1
 
         // Disable child window clipping while fitting columns. This is not strictly necessary but makes it possible to avoid
         // the column fitting to wait until the first visible frame of the child container (may or not be a good thing).
@@ -355,9 +355,9 @@ internal interface table {
         // - FreezeRows || FreezeColumns  --> 1+N*2 (unless scrolling value is zero)
         // - FreezeRows && FreezeColunns  --> 2+N*2 (unless scrolling value is zero)
         val freezeRowMultiplier = if (table.freezeRowsCount > 0) 2 else 1
-        val channelsForRow = if (table.flags has Tf.NoClipX) 1 else table.columnsActiveCount
+        val channelsForRow = if (table.flags has Tf.NoClipX) 1 else table.columnsVisibleCount
         val channelsForBackground = 1
-        val channelsForDummy = (table.columnsActiveCount < table.columnsCount || table.visibleMaskByIndex != table.activeMaskByIndex).i
+        val channelsForDummy = (table.columnsVisibleCount < table.columnsCount || table.visibleUnclippedMaskByIndex != table.visibleMaskByIndex).i
         val channelsTotal = channelsForBackground + (channelsForRow * freezeRowMultiplier) + channelsForDummy
         table.drawSplitter.split(table.innerWindow!!.drawList, channelsTotal)
         table.dummyDrawChannel = if (channelsForDummy != 0) channelsTotal - 1 else -1
@@ -400,7 +400,7 @@ internal interface table {
         table.leftMostStretchedColumnDisplayOrder = -1
         table.columnsAutoFitWidth = 0f
         for (orderN in 0 until table.columnsCount) {
-            if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
+            if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN))
                 continue
             val columnN = table.displayOrderToIndex[orderN].i
             val column = table.columns[columnN]!!
@@ -454,11 +454,11 @@ internal interface table {
 
         // CellSpacingX is >0.0f when there's no vertical border, in which case we add two extra CellSpacingX to make auto-fit look nice instead of cramped.
         // We may want to expose this somehow.
-        table.columnsAutoFitWidth += spacingAutoX * (table.columnsActiveCount - 1)
+        table.columnsAutoFitWidth += spacingAutoX * (table.columnsVisibleCount - 1)
 
         // Layout
         // Remove -1.0f to cancel out the +1.0f we are doing in EndTable() to make last column line visible
-        val widthSpacings = table.cellSpacingX * (table.columnsActiveCount - 1)
+        val widthSpacings = table.cellSpacingX * (table.columnsVisibleCount - 1)
         val widthAvail = when {
             table.flags has Tf.ScrollX && table.innerWidth == 0f -> table.innerClipRect.width
             else -> workRect.width
@@ -471,7 +471,7 @@ internal interface table {
         var countResizable = 0
         table.columnsTotalWidth = widthSpacings
         for (orderN in 0 until table.columnsCount) {
-            if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
+            if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN))
                 continue
             val column = table.columns[table.displayOrderToIndex[orderN].i]!!
 
@@ -483,16 +483,16 @@ internal interface table {
 
                 // [Resize Rule 2] Resizing from right-side of a weighted column before a fixed column froward sizing
                 // to left-side of fixed column. We also need to copy the NoResize flag..
-                if (column.nextActiveColumn != -1)
-                    table.columns[column.nextActiveColumn]?.let { nextColumn ->
+                if (column.nextVisibleColumn != -1)
+                    table.columns[column.nextVisibleColumn]?.let { nextColumn ->
                         if (nextColumn.flags has Tcf.WidthFixed)
                             column.flags = column.flags or (nextColumn.flags and Tcf.NoDirectResize_)
                     }
             }
 
-            // [Resize Rule 1] The right-most active column is not resizable if there is at least one Stretch column
-            // (see comments in TableResizeColumn().)
-            if (column.nextActiveColumn == -1 && table.leftMostStretchedColumnDisplayOrder != -1)
+            // [Resize Rule 1] The right-most visible column is not resizable if there is at least one Stretch column
+            // (see comments in TableResizeColumn())
+            if (column.nextVisibleColumn == -1 && table.leftMostStretchedColumnDisplayOrder != -1)
                 column.flags = column.flags or Tcf.NoDirectResize_
 
             if (column.flags hasnt Tcf.NoResize)
@@ -510,15 +510,15 @@ internal interface table {
 //            // Shrink widths when the total does not fit
 //            // FIXME-TABLE: This is working but confuses/conflicts with manual resizing.
 //            // FIXME-TABLE: Policy to shrink down below below ideal/requested width if there's no room?
-//            g.ShrinkWidthBuffer.resize(table->ColumnsActiveCount)
-//            for (int order_n = 0, active_n = 0; order_n < table->ColumnsCount; order_n++)
+//            g.ShrinkWidthBuffer.resize(table->ColumnsVisibleCount)
+//            for (int order_n = 0, visible_n = 0; order_n < table->ColumnsCount; order_n++)
 //            {
 //                if (!(table->ActiveMaskByDisplayOrder & ((ImU64)1 << order_n)))
 //                continue
 //                const int column_n = table->DisplayOrder[order_n]
-//                g.ShrinkWidthBuffer[active_n].Index = column_n
-//                g.ShrinkWidthBuffer[active_n].Width = table->Columns[column_n].WidthGiven
-//                active_n++
+//                g.ShrinkWidthBuffer[visible_n].Index = column_n
+//                g.ShrinkWidthBuffer[visible_n].Width = table->Columns[column_n].WidthGiven
+//                visible_n++
 //            }
 //            ShrinkWidths(g.ShrinkWidthBuffer.Data, g.ShrinkWidthBuffer.Size, width_excess)
 //            for (int n = 0; n < g.ShrinkWidthBuffer.Size; n++)
@@ -536,7 +536,7 @@ internal interface table {
         if (widthRemainingForStretchedColumns >= 1f) {
             var orderN = table.columnsCount // - 1 [JVM] trick to change orderN in while statement
             while (totalWeights > 0f && widthRemainingForStretchedColumns >= 1f && --orderN >= 0) {
-                if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
+                if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN))
                     continue
                 val column = table.columns[table.displayOrderToIndex[orderN].i]!!
                 if (column.flags hasnt Tcf.WidthStretch)
@@ -548,17 +548,17 @@ internal interface table {
         }
 
         // Setup final position, offset and clipping rectangles
-        var activeN = 0
+        var visibleN = 0
         var offsetX = if (table.freezeColumnsCount > 0) table.outerRect.min.x else workRect.min.x
         val hostClipRect = Rect(table.innerClipRect)
         for (orderN in 0 until table.columnsCount) {
             val columnN = table.displayOrderToIndex[orderN].i
             val column = table.columns[columnN]!!
 
-            if (table.freezeColumnsCount > 0 && table.freezeColumnsCount == activeN)
+            if (table.freezeColumnsCount > 0 && table.freezeColumnsCount == visibleN)
                 offsetX += workRect.min.x - table.outerRect.min.x
 
-            if (table.activeMaskByDisplayOrder hasnt (1L shl orderN)) {
+            if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN)) {
                 // Hidden column: clear a few fields and we are done with it for the remainder of the function.
                 // We set a zero-width clip rect but set Min.y/Max.y properly to not interfere with the clipper.
                 column.minX = offsetX
@@ -586,7 +586,7 @@ internal interface table {
                 // sure they are all visible. Because of this we also know that all of the columns will always fit in
                 // table->WorkRect and therefore in table->InnerRect (because ScrollX is off)
                 if (table.flags hasnt Tf.NoKeepColumnsVisible)
-                    maxX = table.workRect.max.x - (table.columnsActiveCount - (column.indexWithinActiveSet + 1)) * minColumnWidth
+                    maxX = table.workRect.max.x - (table.columnsVisibleCount - (column.indexWithinVisibleSet + 1)) * minColumnWidth
             }
             if (offsetX + column.widthGiven > maxX)
                 column.widthGiven = max(maxX - offsetX, minColumnWidth)
@@ -602,7 +602,7 @@ internal interface table {
             column.skipItems = column.isClipped || table.hostSkipItems
             if (column.isClipped)
             // Columns with the _WidthAlwaysAutoResize sizing policy will never be updated then.
-                table.visibleMaskByIndex = table.visibleMaskByIndex wo (1L shl columnN)
+                table.visibleUnclippedMaskByIndex = table.visibleUnclippedMaskByIndex wo (1L shl columnN)
             else {
                 // Starting cursor position
                 column.startXRows = column.minX + table.cellPaddingX1
@@ -631,11 +631,11 @@ internal interface table {
                 column.cannotSkipItemsQueue = column.cannotSkipItemsQueue shr 1
             }
 
-            if (activeN < table.freezeColumnsCount)
+            if (visibleN < table.freezeColumnsCount)
                 hostClipRect.min.x = hostClipRect.min.x max (column.maxX + 2f)
 
             offsetX += column.widthGiven + table.cellSpacingX
-            activeN++
+            visibleN++
         }
 
         // Clear Resizable flag if none of our column are actually resizable (either via an explicit _NoResize flag,
@@ -692,7 +692,7 @@ internal interface table {
 
         for (orderN in 0 until table.columnsCount) {
 
-            if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
+            if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN))
                 continue
 
             val columnN = table.displayOrderToIndex[orderN].i
@@ -751,14 +751,14 @@ internal interface table {
         val minWidth = tableGetMinColumnWidth
         var maxWidth0 = Float.MAX_VALUE
         if (table.flags hasnt Tf.ScrollX)
-            maxWidth0 = (table.workRect.max.x - column0.minX) - (table.columnsActiveCount - (column0.indexWithinActiveSet + 1)) * minWidth
+            maxWidth0 = (table.workRect.max.x - column0.minX) - (table.columnsVisibleCount - (column0.indexWithinVisibleSet + 1)) * minWidth
         column0Width = clamp(column0Width, minWidth, maxWidth0)
 
         // Compare both requested and actual given width to avoid overwriting requested width when column is stuck (minimum size, bounded)
         if (column0.widthGiven == column0Width || column0.widthRequested == column0Width)
             return
 
-        val column1 = table.columns.getOrNull(column0.nextActiveColumn)
+        val column1 = table.columns.getOrNull(column0.nextVisibleColumn)
 
         // In this surprisingly not simple because of how we support mixing Fixed and Stretch columns.
         // When forwarding resize from Wn| to Fn+1| we need to be considerate of the _NoResize flag on Fn+1.
@@ -844,7 +844,7 @@ internal interface table {
 
         if (table.flags has Tf.BordersVInner)
             for (orderN in 0 until table.columnsCount) {
-                if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
+                if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN))
                     continue
 
                 val columnN = table.displayOrderToIndex[orderN].i
@@ -853,7 +853,7 @@ internal interface table {
                 val isResized = table.resizedColumn == columnN && table.instanceInteracted == table.instanceCurrent
                 val isResizable = column.flags hasnt (Tcf.NoResize or Tcf.NoDirectResize_)
                 var drawRightBorder = column.maxX <= table.innerClipRect.max.x || (isResized || isHovered)
-                if (column.nextActiveColumn == -1 && !isResizable)
+                if (column.nextVisibleColumn == -1 && !isResizable)
                     drawRightBorder = false
                 if (drawRightBorder && column.maxX > column.clipRect.min.x) { // FIXME-TABLE FIXME-STYLE: Assume BorderSize==1, this is problematic if we want to increase the border size..
                     // Draw in outer window so right-most column won't be clipped
@@ -942,7 +942,7 @@ internal interface table {
 
         // 1. Scan channels and take note of those which can be merged
         for (orderN in 0 until table.columnsCount) {
-            if (table.activeMaskByDisplayOrder hasnt (1L shl orderN))
+            if (table.visibleMaskByDisplayOrder hasnt (1L shl orderN))
                 continue
             val columnN = table.displayOrderToIndex[orderN].i
             val column = table.columns[columnN]!!
@@ -1083,7 +1083,7 @@ internal interface table {
         // Sizing
         if (table.flags has Tf.Resizable) {
             table.columns.getOrNull(selectedColumnN)?.let { selectedColumn ->
-                val canResize = selectedColumn.flags hasnt (Tcf.NoResize or Tcf.WidthStretch) && selectedColumn.isActive
+                val canResize = selectedColumn.flags hasnt (Tcf.NoResize or Tcf.WidthStretch) && selectedColumn.isVisible
                 if (menuItem("Size column to fit", "", false, canResize))
                     tableSetColumnAutofit(table, selectedColumnN)
             }
@@ -1091,7 +1091,7 @@ internal interface table {
             if (menuItem("Size all columns to fit", ""))
                 for (columnN in 0 until table.columnsCount) {
                     val column = table.columns[columnN]!!
-                    if (column.isActive)
+                    if (column.isVisible)
                         tableSetColumnAutofit(table, columnN)
                 }
             wantSeparator = true
@@ -1117,10 +1117,10 @@ internal interface table {
 
                 // Make sure we can't hide the last active column
                 var menuItemActive = column.flags hasnt Tcf.NoHide
-                if (column.isActive && table.columnsActiveCount <= 1)
+                if (column.isVisible && table.columnsVisibleCount <= 1)
                     menuItemActive = false
-                if (menuItem(name, "", column.isActive, menuItemActive))
-                    column.isActiveNextFrame = !column.isActive
+                if (menuItem(name, "", column.isVisible, menuItemActive))
+                    column.isVisibleNextFrame = !column.isVisible
             }
             popItemFlag()
         }
@@ -1173,7 +1173,7 @@ internal interface table {
         var sortOrderMask = 0x00L
         for (columnN in 0 until table.columnsCount) {
             val column = table.columns[columnN]!!
-            if (column.sortOrder != -1 && !column.isActive)
+            if (column.sortOrder != -1 && !column.isVisible)
                 column.sortOrder = -1
             if (column.sortOrder == -1)
                 continue
@@ -1212,7 +1212,7 @@ internal interface table {
         if (sortOrderCount == 0 && table.isInitializing)
             for (columnN in 0 until table.columnsCount) {
                 val column = table.columns[columnN]!!
-                if (column.flags hasnt Tcf.NoSort && column.isActive) {
+                if (column.flags hasnt Tcf.NoSort && column.isVisible) {
                     sortOrderCount = 1
                     column.sortOrder = 0
                     break
@@ -1380,7 +1380,7 @@ internal interface table {
         window.workRect.max.x = column.maxX - table.cellPaddingX2
 
         // To allow ImGuiListClipper to function we propagate our row height
-        if (!column.isActive)
+        if (!column.isVisible)
             window.dc.cursorPos.y = window.dc.cursorPos.y max table.rowPosY2
 
         window.skipItems = column.skipItems
@@ -1499,8 +1499,8 @@ internal interface table {
                 settings.saveFlags has Tf.Reorderable -> columnSettings.displayOrder
                 else -> columnN
             }
-            column.isActive = columnSettings.visible
-            column.isActiveNextFrame = column.isActive
+            column.isVisible = columnSettings.visible
+            column.isVisibleNextFrame = column.isVisible
             column.sortOrder = columnSettings.sortOrder
             column.sortDirection = columnSettings.sortDirection
         }
@@ -1539,7 +1539,7 @@ internal interface table {
             var visibleWidth = 0f
             for (columnN in 0 until table.columnsCount) {
                 val column = table.columns[columnN]!!
-                if (!column.isActive || column.flags hasnt Tcf.WidthStretch)
+                if (!column.isVisible || column.flags hasnt Tcf.WidthStretch)
                     continue
                 visibleWeight += column.resizeWeight
                 visibleWidth += column.widthRequested
@@ -1549,7 +1549,7 @@ internal interface table {
             // Apply new weights
             for (columnN in 0 until table.columnsCount) {
                 val column = table.columns[columnN]!!
-                if (!column.isActive || column.flags hasnt Tcf.WidthStretch)
+                if (!column.isVisible || column.flags hasnt Tcf.WidthStretch)
                     continue
                 column.resizeWeight = column.widthRequested / visibleWidth
             }
@@ -1685,7 +1685,7 @@ internal interface table {
             columnSettings.displayOrder = column.displayOrder
             columnSettings.sortOrder = column.sortOrder
             columnSettings.sortDirection = column.sortDirection
-            columnSettings.visible = column.isActive
+            columnSettings.visible = column.isVisible
 
             // We skip saving some data in the .ini file when they are unnecessary to restore our state
             // FIXME-TABLE: We don't have logic to easily compare SortOrder to DefaultSortOrder yet so it's always saved when present.

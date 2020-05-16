@@ -839,7 +839,7 @@ interface demoDebugInformations {
                         val column = table.columns[n]!!
                         val name = tableGetColumnName(table, n)
                         bulletText("Column $n order ${column.displayOrder} name '$name': +%.1f to +%.1f\n".format(column.minX - table.workRect.min.x, column.maxX - table.workRect.min.x) +
-                                "Active: ${column.isActive.i}, Clipped: ${column.isClipped.i}, DrawChannels: ${column.drawChannelRowsBeforeFreeze},${column.drawChannelRowsAfterFreeze}\n" +
+                                "Visible: ${column.isVisible.i}, Clipped: ${column.isClipped.i}, DrawChannels: ${column.drawChannelRowsBeforeFreeze},${column.drawChannelRowsAfterFreeze}\n" +
                                 "WidthGiven/Requested: %.1f/%.1f, Weight: %.2f\n".format(column.widthGiven, column.widthRequested, column.resizeWeight) +
                                 "ContentWidth: RowsFrozen ${column.contentWidthRowsFrozen}, RowsUnfrozen ${column.contentWidthRowsUnfrozen}, HeadersUsed/Ideal ${column.contentWidthHeadersUsed}/${column.contentWidthHeadersIdeal}\n" +
                                 "SortOrder: ${column.sortOrder}, SortDir: ${if (column.sortDirection == SortDirection.Ascending) "Ascending" else if (column.sortDirection == SortDirection.Descending) "Descending" else "None"}\n" +
