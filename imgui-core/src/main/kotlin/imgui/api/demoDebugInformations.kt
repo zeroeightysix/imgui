@@ -48,7 +48,7 @@ import imgui.ImGui.style
 import imgui.ImGui.styleColorsClassic
 import imgui.ImGui.styleColorsDark
 import imgui.ImGui.styleColorsLight
-import imgui.ImGui.tableFindSettings
+import imgui.ImGui.tableGetBoundSettings
 import imgui.ImGui.tableGetColumnName
 import imgui.ImGui.text
 import imgui.ImGui.textColored
@@ -847,7 +847,7 @@ interface demoDebugInformations {
                                 "${if (column.flags has TableColumnFlag.WidthFixed) "WidthFixed " else ""}${if (column.flags has TableColumnFlag.WidthStretch) "WidthStretch " else ""}" +
                                 "${if (column.flags has TableColumnFlag.WidthAlwaysAutoResize) "WidthAlwaysAutoResize " else ""}${if (column.flags has TableColumnFlag.NoResize) "NoResize " else ""}..")
                     }
-                    tableFindSettings(table)?.let(::nodeTableSettings)
+                    tableGetBoundSettings(table)?.let(::nodeTableSettings)
                     treePop()
                 }
             }

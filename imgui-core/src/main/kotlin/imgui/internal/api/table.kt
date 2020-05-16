@@ -1474,11 +1474,13 @@ internal interface table {
             return
 
         // Bind settings
-        val settings = g.settingsTables.getOrElse(table.settingsOffset) {
-            findTableSettingsByID(table.id)?.also { table.settingsOffset = g.settingsTables.indexOf(it) }
-                    ?: return
-        }
+        val settings: TableSettings
+        if (table.settingsOffset == -1) {
+            settings = findTableSettingsByID(table.id) ?: return
+            table.settingsOffset = g.settingsTables.indexOf(settings)
+        } else settings = tableGetBoundSettings(table)!!
         table.settingsLoadedFlags = settings.saveFlags
+        assert(settings.columnsCount == table.columnsCount)
 
         // Serialize ImGuiTableSettings/ImGuiTableColumnSettings into ImGuiTable/ImGuiTableColumn
         for (dataN in 0 until settings.columnsCount) {
@@ -1488,14 +1490,14 @@ internal interface table {
                 continue
             val column = table.columns[columnN]!!
             //column->WidthRequested = column_settings->WidthOrWeight; // FIXME-WIP
-            if (columnSettings.displayOrder != -1)
-                column.displayOrder = columnSettings.displayOrder
-            if (columnSettings.sortOrder != -1) {
-                column.sortOrder = columnSettings.sortOrder
-                column.sortDirection = columnSettings.sortDirection
+            column.displayOrder = when {
+                settings.saveFlags has Tf.Reorderable -> columnSettings.displayOrder
+                else -> columnN
             }
             column.isActive = columnSettings.visible
             column.isActiveNextFrame = column.isActive
+            column.sortOrder = columnSettings.sortOrder
+            column.sortDirection = columnSettings.sortDirection
         }
 
         // FIXME-TABLE: Need to validate .ini data
@@ -1506,13 +1508,13 @@ internal interface table {
     companion object {
 
         fun createTableSettings(id: ID, columnsCount: Int): TableSettings {
-            val settings = TableSettings(columnsCount)
+            val settings = TableSettings(id, columnsCount, columnsCount)
             g.settingsTables += settings
-            settings.id = id
             return settings
         }
 
-        // FIXME-OPT: Might want to store a lookup map for this?
+        /** Find existing settings
+         *  FIXME-OPT: Might want to store a lookup map for this? */
         fun findTableSettingsByID(id: ID): TableSettings? = g.settingsTables.find { it.id == id }
 
         fun tableFixColumnSortDirection(column: TableColumn) {
@@ -1547,6 +1549,107 @@ internal interface table {
                 column.resizeWeight = column.widthRequested / visibleWidth
             }
         }
+
+        fun tableSettingsHandler_ClearAll(ctx: Context, settingsHandler: SettingsHandler) {
+            val g = ctx
+            for (i in 0 until g.tables.size)
+                g.tables[PoolIdx(i)].settingsOffset = -1
+            g.settingsTables.clear()
+        }
+
+        /** Apply to existing windows (if any) */
+        fun tableSettingsHandler_ApplyAll(ctx: Context, settingsHandler: SettingsHandler) {
+            val g = ctx
+            for (i in 0 until g.tables.size) {
+                val table = g.tables[PoolIdx(i)]
+                table.isSettingsRequestLoad = true
+                table.settingsOffset = -1
+            }
+        }
+
+        fun tableSettingsHandler_ReadOpen(ctx: Context, settingsHandler: SettingsHandler, name: String): TableSettings? {
+            if (name.startsWith("0x")) {
+                val chunks = name.split(',')
+                if (chunks.size == 2) {
+                    val id = chunks[0].substring(2).toLong(16).i
+                    val columnsCount = chunks[1].i
+
+                    findTableSettingsByID(id)?.let { settings ->
+                        if (settings.columnsCountMax >= columnsCount)
+                            return settings.init(id, columnsCount, settings.columnsCountMax) // Recycle
+                        settings.id = 0 // Invalidate storage if we won't fit because of a count change
+                    }
+
+                    return createTableSettings(id, columnsCount)
+                }
+            }
+            return null
+        }
+
+        fun tableSettingsHandler_ReadLine(ctx: Context, settingsHandler: SettingsHandler, entry: Any?, line: String) {
+            // "Column 0  UserID=0x42AD2D21 Width=100 Visible=1 Order=0 Sort=0v"
+            val settings = entry as TableSettings
+            if (!line.startsWith("Column")) return
+            val chunks = line.split(Regex("\\s+"))
+            var r = 1
+            val columnN = chunks[r++].i
+            if (columnN < 0 || columnN >= settings.columnsCount)
+                return
+
+//        char c = 0
+            val column = settings.columnSettings[columnN]
+            column.index = columnN
+            if (chunks[r].startsWith("UserID=0x")) column.userID = chunks[r++].substring(6 + 1 + 2).toInt(16)
+            if (chunks[r].startsWith("Width=")) settings.saveFlags = settings.saveFlags or Tf.Resizable
+            if (chunks[r].startsWith("Visible=")) {
+                column.visible = chunks[r++].substring(7 + 1).i.bool
+                settings.saveFlags = settings.saveFlags or Tf.Hideable
+            }
+            if (chunks[r].startsWith("Order=")) {
+                column.displayOrder = chunks[r++].substring(5 + 1).i
+                settings.saveFlags = settings.saveFlags or Tf.Reorderable
+            }
+            if (chunks[r].startsWith("Sort=")) {
+                val chunk = chunks[r++]
+                column.sortOrder = chunk[4 + 1].i
+                val c = chunk[4 + 1 + 1]
+                column.sortDirection = if (c == '^') SortDirection.Descending else SortDirection.Ascending
+                settings.saveFlags = settings.saveFlags or Tf.Sortable
+            }
+        }
+
+        fun tableSettingsHandler_WriteAll(ctx: Context, handler: SettingsHandler, buf: StringBuilder) {
+
+            for (settings in g.settingsTables) {
+
+                if (settings.id == 0) // Skip ditched settings
+                    continue
+
+                // TableSaveSettings() may clear some of those flags when we establish that the data can be stripped
+                // (e.g. Order was unchanged)
+                val saveSize = settings.saveFlags has Tf.Resizable
+                val saveVisible = settings.saveFlags has Tf.Hideable
+                val saveOrder = settings.saveFlags has Tf.Reorderable
+                val saveSort = settings.saveFlags has Tf.Sortable
+                if (!saveSize && !saveVisible && !saveOrder && !saveSort)
+                    continue
+
+                buf.ensureCapacity(buf.length + 30 + settings.columnsCount * 50) // ballpark reserve
+                buf += "[${handler.typeName}][0x%08X,${settings.columnsCount}]\n".format(settings.id) // format because we want to keep leading 0s
+                for (columnN in 0 until settings.columnsCount) {
+                    val column = settings.columnSettings[columnN]
+                    // "Column 0  UserID=0x42AD2D21 Width=100 Visible=1 Order=0 Sort=0v"
+                    buf += "Column %-2d".format(columnN)
+                    if (column.userID != 0) buf += " UserID=%08X".format(column.userID)
+                    if (saveSize) buf += " Width=${0}"// (int)settings_column->WidthOrWeight);  // FIXME-TABLE
+                    if (saveVisible) buf += " Visible=${column.visible.i}"
+                    if (saveOrder) buf += " Order=${column.displayOrder}"
+                    if (saveSort && column.sortOrder != -1) buf += " Sort=${column.sortOrder}${if (column.sortDirection == SortDirection.Ascending) 'v' else '^'}"
+                    buf += '\n'
+                }
+                buf += '\n'
+            }
+        }
     }
 
     fun tableSaveSettings(table: Table) {
@@ -1556,9 +1659,10 @@ internal interface table {
             return
 
         // Bind or create settings data
-        val settings = tableFindSettings(table) ?: createTableSettings(table.id, table.columnsCount).also { settings ->
-            table.settingsOffset = g.settingsTables.indexOf(settings)
-        }
+        val settings = tableGetBoundSettings(table)
+                ?: createTableSettings(table.id, table.columnsCount).also { settings ->
+                    table.settingsOffset = g.settingsTables.indexOf(settings)
+                }
         settings.columnsCount = table.columnsCount
 
         // Serialize ImGuiTable/ImGuiTableColumn into ImGuiTableSettings/ImGuiTableColumnSettings
@@ -1571,7 +1675,7 @@ internal interface table {
             val column = table.columns[n]!!
             val columnSettings = settings.columnSettings[n]
 
-            //column_settings->WidthOrWeight = column->WidthRequested; // FIXME-WIP
+            //column_settings->WidthOrWeight = column->WidthRequested; // FIXME-TABLE: Missing
             columnSettings.index = n
             columnSettings.displayOrder = column.displayOrder
             columnSettings.sortOrder = column.sortOrder
@@ -1579,7 +1683,7 @@ internal interface table {
             columnSettings.visible = column.isActive
 
             // We skip saving some data in the .ini file when they are unnecessary to restore our state
-            // FIXME-TABLE: We don't have logic to easily compare SortOrder to DefaultSortOrder yet so it's always saved.
+            // FIXME-TABLE: We don't have logic to easily compare SortOrder to DefaultSortOrder yet so it's always saved when present.
             if (column.displayOrder != n)
                 settings.saveFlags = settings.saveFlags or Tf.Reorderable
             if (columnSettings.sortOrder != -1)
@@ -1592,94 +1696,27 @@ internal interface table {
         markIniSettingsDirty()
     }
 
-    fun tableFindSettings(table: Table): TableSettings? {
-        if (table.settingsOffset == -1)
-            return null
-
-        val settings = g.settingsTables[table.settingsOffset]
-        assert(settings.id == table.id)
-        if (settings.columnsCountMax < table.columnsCount) {
-            settings.id = 0 // Ditch storage if we won't fit because of a count change
-            return null
-        }
-        return settings
-    }
-
-    fun tableSettingsHandler_ReadOpen(ctx: Context, settingsHandler: SettingsHandler, name: String): TableSettings? {
-        if (name.startsWith("0x")) {
-            val chunks = name.split(',')
-            if (chunks.size == 2) {
-                val id = chunks[0].substring(2).toLong(16).i
-                val columnsCount = chunks[1].i
-                return createTableSettings(id, columnsCount)
-            }
+    /** Get settings for a given table, NULL if none */
+    fun tableGetBoundSettings(table: Table): TableSettings? {
+        if (table.settingsOffset != -1) {
+            val settings = g.settingsTables[table.settingsOffset]
+            assert(settings.id == table.id)
+            if (settings.columnsCountMax >= table.columnsCount)
+                return settings // OK
+            settings.id = 0 // Invalidate storage, we won't fit because of a count change
         }
         return null
     }
 
-    fun tableSettingsHandler_ReadLine(ctx: Context, settingsHandler: SettingsHandler, entry: Any?, line: String) {
-        // "Column 0  UserID=0x42AD2D21 Width=100 Visible=1 Order=0 Sort=0v"
-        val settings = entry as TableSettings
-        if (!line.startsWith("Column")) return
-        val chunks = line.split(Regex("\\s+"))
-        var r = 1
-        val columnN = chunks[r++].i
-        if (columnN < 0 || columnN >= settings.columnsCount)
-            return
-
-//        char c = 0
-        val column = settings.columnSettings[columnN]
-        column.index = columnN
-        if (chunks[r].startsWith("UserID=0x")) column.userID = chunks[r++].substring(6 + 1 + 2).toInt(16)
-        if (chunks[r].startsWith("Width=")) settings.saveFlags = settings.saveFlags or Tf.Resizable
-        if (chunks[r].startsWith("Visible=")) {
-            column.visible = chunks[r++].substring(7 + 1).i.bool
-            settings.saveFlags = settings.saveFlags or Tf.Hideable
-        }
-        if (chunks[r].startsWith("Order=")) {
-            column.displayOrder = chunks[r++].substring(5 + 1).i
-            settings.saveFlags = settings.saveFlags or Tf.Reorderable
-        }
-        if (chunks[r].startsWith("Sort=")) {
-            val chunk = chunks[r++]
-            column.sortOrder = chunk[4 + 1].i
-            val c = chunk[4 + 1 + 1]
-            column.sortDirection = if (c == '^') SortDirection.Descending else SortDirection.Ascending
-            settings.saveFlags = settings.saveFlags or Tf.Sortable
-        }
-    }
-
-    fun tableSettingsHandler_WriteAll(ctx: Context, handler: SettingsHandler, buf: StringBuilder) {
-
-        for (settings in g.settingsTables) {
-
-            if (settings.id == 0) // Skip ditched settings
-                continue
-
-            // TableSaveSettings() may clear some of those flags when we establish that the data can be stripped
-            // (e.g. Order was unchanged)
-            val saveSize = settings.saveFlags has Tf.Resizable
-            val saveVisible = settings.saveFlags has Tf.Hideable
-            val saveOrder = settings.saveFlags has Tf.Reorderable
-            val saveSort = settings.saveFlags has Tf.Sortable
-            if (!saveSize && !saveVisible && !saveOrder && !saveSort)
-                continue
-
-            buf.ensureCapacity(buf.length + 30 + settings.columnsCount * 50) // ballpark reserve
-            buf += "[${handler.typeName}][0x%08X,${settings.columnsCount}]\n".format(settings.id) // format because we want to keep leading 0s
-            for (columnN in 0 until settings.columnsCount) {
-                val column = settings.columnSettings[columnN]
-                // "Column 0  UserID=0x42AD2D21 Width=100 Visible=1 Order=0 Sort=0v"
-                buf += "Column %-2d".format(columnN)
-                if (column.userID != 0)
-                    buf += " UserID=%08X".format(column.userID)
-                if (saveSize) buf += " Width=${0}"// (int)settings_column->WidthOrWeight);  // FIXME-TABLE
-                if (saveVisible) buf += " Visible=${column.visible.i}"
-                if (saveOrder) buf += " Order=${column.displayOrder}"
-                if (saveSort && column.sortOrder != -1) buf += " Sort=${column.sortOrder}${if (column.sortDirection == SortDirection.Ascending) 'v' else '^'}"
-                buf += '\n'
-            }
-            buf += '\n'
+    fun tableInstallSettingsHandler(context: Context) {
+        g.settingsHandlers += SettingsHandler().apply {
+            typeName = "Table"
+            typeHash = hash("Table")
+            clearAllFn = ::tableSettingsHandler_ClearAll
+            readOpenFn = ::tableSettingsHandler_ReadOpen
+            readLineFn = ::tableSettingsHandler_ReadLine
+            applyAllFn = ::tableSettingsHandler_ApplyAll
+            writeAllFn = ::tableSettingsHandler_WriteAll
         }
     }
 }

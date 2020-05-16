@@ -863,26 +863,54 @@ class TableColumn {
 /** Storage for a table .ini settings
  *
  *  This is designed to be stored in a single ImChunkStream (1 header followed by N ImGuiTableColumnSettings, etc.) */
-class TableSettings(columnsCount: Int) {
-
+class TableSettings
+/** Clear and initialize empty settings instance
+ *  ~initTableSettings */
+constructor(
     /** Set to 0 to invalidate/delete the setting */
-    var id: ID = 0
+    var id: ID,
+    columnsCount: Int, columnsCountMax: Int) {
+
+    /** Indicate data we want to save using the Resizable/Reorderable/Sortable/Hideable flags (could be using its own flags..) */
     var saveFlags = TableFlag.None.i
+    /*
+        int =   ImS8                        ColumnsCount
+                ImS8                        ColumnsCountMax
+                bool                        WantApply
+     */
     private var int = 0
     var columnsCount: Int
         get() = (int shr 24).b.i
         set(value) {
             int = (int and 0x00ff_ffff) or (value shl 24)
         }
+    /** Maximum number of columns this settings instance can store, we can recycle a settings instance with lower number of columns but not higher */
     var columnsCountMax: Int
-        get() = int.b.i
+        get() = (int shr 16).b.i
         set(value) {
-            int = (int and 0xffff_ff00.i) or (value and 0xff)
+            int = (int and 0xff00_ffff.i) or ((value and 0xff) shl 16)
+        }
+    /** Set when loaded from .ini data (to enable merging/loading .ini data into an already running context) */
+    var wantApply: Boolean
+        get() = (int and 1) == 1
+        set(value) {
+            int = when {
+                value -> int or 1
+                else -> int and 0b11111111_11111110
+            }
         }
 
     init {
         this.columnsCount = columnsCount
-        columnsCountMax = columnsCount
+        this.columnsCountMax = columnsCountMax
+        wantApply = true
+    }
+
+    fun init(id: ID, columnsCount: Int, columnsCountMax: Int): TableSettings {
+        this.id = id
+        this.columnsCount = columnsCount
+        this.columnsCountMax = columnsCountMax
+        return this
     }
 
     //    [JVM] we store here
