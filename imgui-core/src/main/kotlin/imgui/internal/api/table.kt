@@ -1478,10 +1478,9 @@ internal interface table {
             findTableSettingsByID(table.id)?.also { table.settingsOffset = g.settingsTables.indexOf(it) }
                     ?: return
         }
-        table.isSettingsLoaded = true
-        settings.saveFlags = table.flags
+        table.settingsLoadedFlags = settings.saveFlags
 
-        // Serialize ImGuiTable/ImGuiTableColumn --> ImGuiTableSettings/ImGuiTableColumnSettings
+        // Serialize ImGuiTableSettings/ImGuiTableColumnSettings into ImGuiTable/ImGuiTableColumn
         for (dataN in 0 until settings.columnsCount) {
             val columnSettings = settings.columnSettings[dataN]
             val columnN = columnSettings.index
@@ -1562,7 +1561,7 @@ internal interface table {
         }
         settings.columnsCount = table.columnsCount
 
-        // Serialize ImGuiTableSettings/ImGuiTableColumnSettings --> ImGuiTable/ImGuiTableColumn
+        // Serialize ImGuiTable/ImGuiTableColumn into ImGuiTableSettings/ImGuiTableColumnSettings
         assert(settings.id == table.id)
         assert(settings.columnsCount == table.columnsCount && settings.columnsCountMax >= settings.columnsCount)
 
@@ -1580,7 +1579,7 @@ internal interface table {
             columnSettings.visible = column.isActive
 
             // We skip saving some data in the .ini file when they are unnecessary to restore our state
-            // FIXME-TABLE: We don't have logic to easily compare SortOrder to DefaultSortOrder yet.
+            // FIXME-TABLE: We don't have logic to easily compare SortOrder to DefaultSortOrder yet so it's always saved.
             if (column.displayOrder != n)
                 settings.saveFlags = settings.saveFlags or Tf.Reorderable
             if (columnSettings.sortOrder != -1)

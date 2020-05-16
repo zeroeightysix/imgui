@@ -458,13 +458,13 @@ interface tables {
                 else -> 1f
             }
         }
-        if (table.isInitializing && !table.isSettingsLoaded) {
+        if (table.isInitializing) {
             // Init default visibility/sort state
-            if (flags has Tcf.DefaultHide) {
+            if (flags has Tcf.DefaultHide && table.settingsLoadedFlags hasnt Tf.Hideable) {
                 column.isActive = false
                 column.isActiveNextFrame = false
             }
-            if (flags has Tcf.DefaultSort) {
+            if (flags has Tcf.DefaultSort && table.settingsLoadedFlags hasnt Tf.Sortable) {
                 column.sortOrder = 0 // Multiple columns using _DefaultSort will be reordered when building the sort specs.
                 column.sortDirection = when {
                     column.flags has Tcf.PreferSortDescending -> SortDirection.Descending

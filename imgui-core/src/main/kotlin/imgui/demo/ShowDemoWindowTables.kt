@@ -974,9 +974,9 @@ object ShowDemoWindowTables {
             val sortsSpecs = tableGetSortSpecs()
             if (sortsSpecs?.specsChanged == true)
                 itemsNeedSort = true
-            if (sortsSpecs != null && itemsNeedSort && items1.size > 1) {
+            if (sortsSpecs != null && itemsNeedSort && items1!!.size > 1) {
                 sCurrentSortSpecs = sortsSpecs // Store in variable accessible by the sort function.
-                items1.sortWith(compareWithSortSpecs)
+                items1!!.sortWith(compareWithSortSpecs)
                 sCurrentSortSpecs = null
             }
             itemsNeedSort = false
@@ -994,10 +994,10 @@ object ShowDemoWindowTables {
             pushButtonRepeat(true)
 
             val clipper = ListClipper()
-            clipper.begin(items1.size)
+            clipper.begin(items1!!.size)
             while (clipper.step()) {
                 for (rowN in clipper.display) {
-                    val item = items1[rowN]
+                    val item = items1!![rowN]
                     //if (!filter.PassFilter(item->Name))
                     //    continue;
 

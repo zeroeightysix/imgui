@@ -38,8 +38,8 @@ class Table {
     /** Visible (== Active and not Clipped) */
     var visibleMaskByIndex = 0L
 
-    /** Pre-compute which data we are going to save into the .ini file (e.g. when order is not altered we won't save order) */
-    var settingsSaveFlags = TableFlag.None.i
+    /** Which data were loaded from the .ini file (e.g. when order is not altered we won't save order) */
+    var settingsLoadedFlags = TableFlag.None.i
 
     /** Offset in g.SettingsTables */
     var settingsOffset = 0
@@ -87,7 +87,6 @@ class Table {
             bool                        IsUsingHeaders
             bool                        IsContextPopupOpen
             bool                        IsSettingsRequestLoad
-            bool                        IsSettingsLoaded
             bool                        IsSettingsDirty
             bool                        IsDefaultDisplayOrder
             bool                        IsResetDisplayOrderRequest
@@ -406,27 +405,15 @@ class Table {
                 else -> longs[3] and b.inv()
             }
         }
-    var isSettingsLoaded: Boolean
-        get() {
-            val b = 1L shl 48
-            return (longs[3] and b) == b
-        }
-        set(value) {
-            val b = 1L shl 48
-            longs[3] = when {
-                value -> longs[3] or b
-                else -> longs[3] and b.inv()
-            }
-        }
 
     /** Set when table settings have changed and needs to be reported into ImGuiTableSetttings data. */
     var isSettingsDirty: Boolean
         get() {
-            val b = 1L shl 47
+            val b = 1L shl 48
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 47
+            val b = 1L shl 48
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -436,11 +423,11 @@ class Table {
     /** Set when display order is unchanged from default (DisplayOrder contains 0...Count-1) */
     var isDefaultDisplayOrder: Boolean
         get() {
-            val b = 1L shl 46
+            val b = 1L shl 47
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 46
+            val b = 1L shl 47
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -449,11 +436,11 @@ class Table {
 
     var isResetDisplayOrderRequest: Boolean
         get() {
-            val b = 1L shl 45
+            val b = 1L shl 46
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 45
+            val b = 1L shl 46
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -463,11 +450,11 @@ class Table {
     /** Set when we got past the frozen row (the first one). */
     var isFreezeRowsPassed: Boolean
         get() {
-            val b = 1L shl 44
+            val b = 1L shl 45
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 44
+            val b = 1L shl 45
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -477,11 +464,11 @@ class Table {
     /** Backup of InnerWindow->SkipItem at the end of BeginTable(), because we will overwrite InnerWindow->SkipItem on a per-column basis */
     var hostSkipItems: Boolean
         get() {
-            val b = 1L shl 43
+            val b = 1L shl 44
             return (longs[3] and b) == b
         }
         set(value) {
-            val b = 1L shl 43
+            val b = 1L shl 44
             longs[3] = when {
                 value -> longs[3] or b
                 else -> longs[3] and b.inv()
@@ -526,7 +513,6 @@ class Table {
         isUsingHeaders=$isUsingHeaders
         isContextPopupOpen=$isContextPopupOpen
         isSettingsRequestLoad=$isSettingsRequestLoad
-        isSettingsLoaded=$isSettingsLoaded
         isSettingsDirty=$isSettingsDirty
         isDefaultDisplayOrder=$isDefaultDisplayOrder
         isResetDisplayOrderRequest=$isResetDisplayOrderRequest
@@ -568,7 +554,7 @@ class TableColumnSettings {
             int = (int and 0b11111111_11111111_11111111_00000001.i) or ((value.ordinal shl 1) and 0b11111110)
         }
 
-    /** This is called Active in ImGuiTableColumn, in .ini file we call it Visible. */
+    /** This is called Active in ImGuiTableColumn, but in user-facing code we call this Visible (thus in .ini file) */
     var visible: Boolean
         get() = (int and 1) == 1
         set(value) {
