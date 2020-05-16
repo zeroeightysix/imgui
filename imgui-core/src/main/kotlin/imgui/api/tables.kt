@@ -258,12 +258,12 @@ interface tables {
             column.contentWidthHeadersUsed = 0 max (column.contentMaxPosHeadersUsed - refXHeaders).i
             column.contentWidthHeadersIdeal = 0 max (column.contentMaxPosHeadersIdeal - refXHeaders).i
 
+            // Add an extra 1 pixel so we can see the last column vertical line if it lies on the right-most edge.
             if (table.activeMaskByIndex has (1L shl columnN))
-                maxPosX = maxPosX max column.maxX
+                maxPosX = maxPosX max (column.maxX + 1f)
         }
 
-        // Add an extra 1 pixel so we can see the last column vertical line if it lies on the right-most edge.
-        innerWindow.dc.cursorMaxPos.x = maxPosX + 1
+        innerWindow.dc.cursorMaxPos.x = maxPosX
 
         if (flags hasnt Tf.NoClipX)
             innerWindow.drawList.popClipRect()
